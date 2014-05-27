@@ -38,17 +38,40 @@ public class DirItem{
 	}
 	
 	public void activated(){
-	try{
-		File f = File.new_for_path (App.main_window.current_image_location);
-		App.main_window.list.remove(App.main_window.current_image_location);
-		App.main_window.getImage();
-		string name = f.query_info ("standard::*", 0).get_name();
-		File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
-		f.move(f2, FileCopyFlags.ALL_METADATA);
-		} catch (Error e) {
+		if(App.batch_mode) {
+			while(App.to_display.size > 0) {	
+				try{
+					File f = File.new_for_path (App.to_display[0].get_path());
+					App.item_list.remove(App.to_display[0]);
+					App.to_display.remove_at(0);
+					string name = f.query_info ("standard::*", 0).get_name();
+					File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
+					f.move(f2, FileCopyFlags.ALL_METADATA);
+				} catch (Error e) {
+					stderr.printf ("Error: %s\n", e.message);
+					return;
+				}
+			}
+		} else {
+			int sel = App.main_window.fullview.image_id;
+			try{
+				File f = File.new_for_path (App.to_display[sel].get_path());
+				App.item_list.remove(App.to_display[sel]);
+				App.to_display.remove_at(sel);
+				string name = f.query_info ("standard::*", 0).get_name();
+				File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
+				f.move(f2, FileCopyFlags.ALL_METADATA);
+			} catch (Error e) {
 				stderr.printf ("Error: %s\n", e.message);
 				return;
+			}
 		}
+		if(App.to_display.size == 0) {
+			App.main_window.loadImage();
+		} else {
+			App.main_window.fullview.resetPage();
+		}
+		
 	}
 	
 	public Granite.Widgets.SourceList.ExpandableItem UIElement;

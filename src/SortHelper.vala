@@ -16,7 +16,9 @@ public class App : Granite.Application{
 	
 	public static MainWindow main_window;
 	public static Unity.LauncherEntry entry;
-	public static ArrayList<string> files;
+	public static ArrayList<File> to_display;
+	public static ItemList item_list;
+	public static bool batch_mode = true;
 	
 	construct{
 		program_name = "SortHelper";
@@ -32,17 +34,19 @@ public class App : Granite.Application{
 		about_license_type = License.GPL_3_0;
 		_instance = this;
 	}
+	
 	protected override void activate(){
 		if (main_window == null){
-			
-		main_window = new MainWindow();
-		main_window.build_all();
-		main_window.set_application(this);
-		entry = Unity.LauncherEntry.get_for_desktop_id ("SortHelper.desktop");
-		main_window.getImage();
-		main_window.present();
+			var directory = File.new_for_path ("/home/df458/Downloads/.dl");
+			item_list = new ItemList.from_folder(directory);
+
+			main_window = new MainWindow();
+			main_window.build_all();
+			main_window.set_application(this);
+			entry = Unity.LauncherEntry.get_for_desktop_id ("SortHelper.desktop");
+			main_window.loadImage();
+			main_window.present();
 		}
-		
 	}
 }
 }
