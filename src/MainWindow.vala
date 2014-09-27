@@ -2,8 +2,8 @@ using GLib;
 using Gee;
 namespace SortHelper{
 public class MainWindow : Gtk.Window{
-	private Gtk.Box container1;
-	private Gtk.Toolbar toolbar;
+	public Gtk.Box container1;
+	private Gtk.HeaderBar toolbar;
 	private Gtk.SeparatorToolItem separator;
 	private Granite.Widgets.ThinPaned panedview;
 	private Granite.Widgets.SourceList places;
@@ -12,7 +12,9 @@ public class MainWindow : Gtk.Window{
 	public Gtk.Image datimage;
 	private Gtk.ToolButton skipbutton;
 	private Gtk.ToolButton deletebutton;
-	private Gtk.ToolButton batchbutton;
+	private Gtk.ToggleToolButton batchbutton;
+	private Gtk.ToolButton refreshbutton;
+	private Gtk.Spinner spinner;
 	private GLib.Rand random;
 	public ArrayList<string> list;
 	private Gtk.ScrolledWindow scrollview;
@@ -21,6 +23,7 @@ public class MainWindow : Gtk.Window{
 	private DirItem lib3item;
 	public string current_image_location;
 	public File current_file;
+	public Gtk.InfoBar errorbar;
 	public ImageFullView fullview;
 	
 	public MainWindow(){
@@ -28,24 +31,38 @@ public class MainWindow : Gtk.Window{
 	}
 	
 	private void create_widgets(){
+		toolbar = new Gtk.HeaderBar();
+		toolbar.set_title("Sorthelper");
+		toolbar.set_subtitle("Completion: ");
+		toolbar.set_show_close_button(true);
+		this.set_titlebar(toolbar);
 		settings = new Gtk.Menu();
-		toolbar = new Gtk.Toolbar();
 		separator = new Gtk.SeparatorToolItem();
 		panedview = new Granite.Widgets.ThinPaned();
 		skipbutton = new Gtk.ToolButton(null, "skip");
-		batchbutton = new Gtk.ToolButton(null, "Disable batch mode");
-		deletebutton = new Gtk.ToolButton.from_stock(Gtk.Stock.DELETE);
+		batchbutton = new Gtk.ToggleToolButton();
+		batchbutton.set_label("Batch Mode");
+		batchbutton.set_active (true);
+
+		deletebutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("edit-delete", Gtk.IconSize.SMALL_TOOLBAR), "Delete");
+		refreshbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("view-refresh", Gtk.IconSize.SMALL_TOOLBAR), "Refresh");
 		dispimage = new Gtk.Image();
 		datimage = new Gtk.Image();
 		scrollview = new Gtk.ScrolledWindow(null, null);
 		fullview = new ImageFullView();
 		places = new Granite.Widgets.SourceList();
+		spinner = new Gtk.Spinner();
 		places.set_hexpand(false);
 		places.set_sort_func(compareItems);
+		errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
+		errorbar.set_show_close_button(true);
+		errorbar.set_response_sensitive(1, false);
+		errorbar.set_response_sensitive(2, true);
+		errorbar.set_message_type(Gtk.MessageType.ERROR);
+		Gtk.Container content = errorbar.get_content_area();
+		content.add (new Gtk.Label("A file with the same name already exists!"));
 		
-		libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
-		lib2item = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.l2"));
-		lib3item = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.l3"));
+		loadDirItems();
 		
 		//panedview.set_vexpand(true);
 		scrollview.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC);
@@ -54,22 +71,22 @@ public class MainWindow : Gtk.Window{
 		
 		skipbutton.clicked.connect(loadImage);
 		deletebutton.clicked.connect(removeImage);
-		batchbutton.clicked.connect(swapBatch);
+		batchbutton.toggled.connect(swapBatch);
+		refreshbutton.clicked.connect(loadDirItems);
+		//errorbar.close.connect(error_cancel);
+		errorbar.response.connect(respond);
 		
 		separator.set_expand(true);
 		
-		toolbar.get_style_context ().add_class (Gtk.STYLE_CLASS_PRIMARY_TOOLBAR);
+		//toolbar.get_style_context ().add_class (Gtk.STYLE_CLASS_PRIMARY_TOOLBAR);
 		
-		toolbar.insert(skipbutton, 0);
-		toolbar.insert(batchbutton, 1);
-		toolbar.insert(separator, 2);
-		toolbar.insert(deletebutton, 3);
-		toolbar.insert (App.instance.create_appmenu (settings), 4);
-		
-		places.root.add(libitem.UIElement);
-		places.root.add(lib2item.UIElement);
-		places.root.add(lib3item.UIElement);
-		
+		toolbar.pack_start(skipbutton);
+		toolbar.pack_start(batchbutton);
+		toolbar.pack_end(refreshbutton);
+		toolbar.pack_end(deletebutton);
+		Gtk.ToolItem item = new Gtk.ToolItem();
+		item.add(spinner);
+		toolbar.pack_end (/*App.instance.create_appmenu (settings)*/item);
 		
 		panedview.pack1(places, false, true);
 		panedview.pack2(fullview, true, true);
@@ -80,14 +97,34 @@ public class MainWindow : Gtk.Window{
 		container1 = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
 		container1.set_homogeneous(false);
 		
-		container1.pack_start(toolbar, false, false, 0);
-		container1.pack_start(panedview, false, false, 1);
+		//container1.pack_start(toolbar, false, false);
+		container1.pack_end(panedview, false, false);
+		//container1.pack_end(errorbar, false, false);
 		
 		container1.set_child_packing(panedview, true, true, 0, Gtk.PackType.END);
 		
 		this.add(container1);
 		
+		this.show_all();
+	}
+	
+	void respond (int response_id) {
+		//stderr.printf("Clicked: %d", response_id);
+		
+		if(response_id == 2)
+			removeImage();
+		container1.remove(errorbar);
 		container1.show_all();
+	}
+	
+	public void loadDirItems() {
+		places.root.clear();
+		libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
+		lib2item = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.l2"));
+		lib3item = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.l3"));
+		places.root.add(libitem.UIElement);
+		places.root.add(lib2item.UIElement);
+		places.root.add(lib3item.UIElement);
 	}
 	
 	public void resizeView() {
@@ -95,27 +132,46 @@ public class MainWindow : Gtk.Window{
 	}
 	
 	public void loadImage() {
-		datimage.set_from_pixbuf(getImage().get_pixbuf());
-		resizeView();
-		fullview.resetPage();
+		if(App.item_list.is_empty()) {
+			
+			return;
+		}
+
+		spinner.start();
+		getImage.begin((obj, res) => {
+			datimage.set_from_pixbuf(getImage.end(res).get_pixbuf());
+			resizeView();
+			fullview.resetPage();
+			spinner.stop();
+			toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
+		});
 	}
 	
 	public void swapBatch() {
-		App.batch_mode = !App.batch_mode;
-		batchbutton.set_label(App.batch_mode ? "Disable batch mode" : "Enable batch mode");
+		App.batch_mode = batchbutton.get_active();
+		//batchbutton.set_label(App.batch_mode ? "Disable batch mode" : "Enable batch mode");
 	}
 	
 	public void removeImage() {
 		if(App.batch_mode)
 			while(App.to_display.size > 0) {
+			    try {
 				App.to_display[0].delete();
+			    } catch(Error e) {
+				stderr.printf("Error: %s", e.message);
+			    }
 				App.item_list.remove(App.to_display[0]);
 				App.to_display.remove_at(0);
 			}
 		else {
-			App.to_display[fullview.image_id].delete();
+			try {
+			    App.to_display[fullview.image_id].delete();
+			} catch(Error e) {
+			    stderr.printf("Error: %s", e.message);
+			}
 			App.item_list.remove(App.to_display[fullview.image_id]);
 			App.to_display.remove_at(fullview.image_id);
+			fullview.image_id--;
 		}
 		if(App.to_display.size == 0) {
 			loadImage();
@@ -150,14 +206,6 @@ public class MainWindow : Gtk.Window{
 		return image;
 	}
 	
-	public static int compareItems(Granite.Widgets.SourceList.Item a, Granite.Widgets.SourceList.Item b){
-		if(a.name > b.name)
-			return 1;
-		else if(b.name > a.name)
-			return -1;
-		return 0;
-	}
-	
 	private inline void setup_properties(){
 		this.window_position = Gtk.WindowPosition.CENTER;
 		this.set_default_size (800, 600);
@@ -171,13 +219,15 @@ public class MainWindow : Gtk.Window{
 		create_widgets();
 	}
 	
-	public Gtk.Image getImage(){
+	public async Gtk.Image getImage(){
 		Gtk.Image image = new Gtk.Image();
 		bool worked = false;
 		int attempts = 0;
 		do{
+			File infile = App.item_list.getFilesByCount()[0];
 //			App.to_display = App.item_list.getFilesByCount();
-			App.to_display = App.item_list.getFilesByExpansion(App.item_list.getFilesByCount()[0]);
+			App.to_display = yield App.item_list.getFilesByExpansion(infile);
+			
 			attempts++;
 			current_image_location = "/home/df458/Downloads/.dl/" + App.to_display[0].get_basename();
 			try{

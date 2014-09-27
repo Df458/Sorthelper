@@ -15,7 +15,6 @@ public class App : Granite.Application{
     }
 	
 	public static MainWindow main_window;
-	public static Unity.LauncherEntry entry;
 	public static ArrayList<File> to_display;
 	public static ItemList item_list;
 	public static bool batch_mode = true;
@@ -43,7 +42,6 @@ public class App : Granite.Application{
 			main_window = new MainWindow();
 			main_window.build_all();
 			main_window.set_application(this);
-			entry = Unity.LauncherEntry.get_for_desktop_id ("SortHelper.desktop");
 			main_window.loadImage();
 			main_window.present();
 		}

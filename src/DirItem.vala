@@ -35,6 +35,7 @@ public class DirItem{
 				return;
 			}
 			UIElement.activated.connect(activated);
+			//UIElement.compare = compareItems;
 	}
 	
 	public void activated(){
@@ -48,7 +49,9 @@ public class DirItem{
 					File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
 					f.move(f2, FileCopyFlags.ALL_METADATA);
 				} catch (Error e) {
-					stderr.printf ("Error: %s\n", e.message);
+					stderr.printf ("IO Error: %s\n", e.message);
+					App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
+					App.main_window.container1.show_all();
 					return;
 				}
 			}
@@ -61,8 +64,11 @@ public class DirItem{
 				string name = f.query_info ("standard::*", 0).get_name();
 				File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
 				f.move(f2, FileCopyFlags.ALL_METADATA);
+				App.main_window.fullview.image_id--;
 			} catch (Error e) {
-				stderr.printf ("Error: %s\n", e.message);
+				stderr.printf ("IO Error: %s\n", e.message);
+				App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
+				App.main_window.container1.show_all();
 				return;
 			}
 		}
@@ -77,5 +83,13 @@ public class DirItem{
 	public Granite.Widgets.SourceList.ExpandableItem UIElement;
 	public File owned_directory;
 	public ArrayList<DirItem> children;
+}
+
+public static int compareItems(Granite.Widgets.SourceList.Item a, Granite.Widgets.SourceList.Item b){
+	if(a.name > b.name)
+		return 1;
+	else if(b.name > a.name)
+		return -1;
+	return 0;
 }
 }
