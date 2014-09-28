@@ -37,49 +37,39 @@ public class ItemList{
     }
     
     public async ArrayList<File> getFilesByExpansion(File to_expand) {
-	//SourceFunc callback = getFilesByExpansion.callback;
-	
 	ArrayList<File> output_list = new ArrayList<File>();
-	
-	//ThreadFunc<void*> run = () => {
-	    output_list.add(to_expand);
-	    string title = to_expand.get_basename();
-	    //title = title.split(".")[0];
-	    string[] tnum = extractnumber(title);
-
-	    if(tnum.length == 3) {
-		for(int i = files.index_of(to_expand) + 1; i < files.size; ++i) {
-		    File f = files[i];
-		    string[] fnum = extractnumber(f.get_basename());
-		    if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
-			stdout.printf("Found " + f.get_basename() + "\n");
-			output_list.add(f);
-		    } else {
-			stdout.printf("Stop at " + f.get_basename() + "\n");
-			break;
-		    }
-		}
-		for(int i = files.index_of(to_expand) - 1; i > 0; --i) {
-		    File f = files[i];
-		    if(f.get_basename().has_prefix(title) && f.get_basename() != to_expand.get_basename()) {
-			stdout.printf("Found " + f.get_basename() + "\n");
-			output_list.add(f);
-		    } else {
-			stdout.printf("Stop at " + f.get_basename() + "\n");
-			break;
-		    }
-		}
-	    } else warning("Tnum length is incorrect!\n");
     
-	    output_list.sort(alphasort);
+	output_list.add(to_expand);
+	string title = to_expand.get_basename();
+	stdout.printf("Expanding %s...", title);
+	stdout.flush();
+	string[] tnum = extractnumber(title);
 
-	    //Idle.add((owned) callback);
-	    //return null;
-	//};
-	
-	//Thread.create<void*>(run, false);
-	//yield;
-	
+	if(tnum.length == 3 && (tnum[0] != "" || !tnum[2].has_prefix("."))) {
+	    for(int i = files.index_of(to_expand) + 1; i < files.size; ++i) {
+		File f = files[i];
+		string[] fnum = extractnumber(f.get_basename());
+		if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
+		    stdout.printf("Found " + f.get_basename() + "\n");
+		    output_list.add(f);
+		} else {
+		    stdout.printf("Stop at " + f.get_basename() + "\n");
+		    break;
+		}
+	    }
+	    for(int i = files.index_of(to_expand) - 1; i > 0; --i) {
+		File f = files[i];
+		if(f.get_basename().has_prefix(title) && f.get_basename() != to_expand.get_basename()) {
+		    stdout.printf("Found " + f.get_basename() + "\n");
+		    output_list.add(f);
+		} else {
+		    stdout.printf("Stop at " + f.get_basename() + "\n");
+		    break;
+		}
+	    }
+	}
+	output_list.sort(alphasort);
+
 	return output_list;
     }
 
