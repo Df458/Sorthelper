@@ -14,39 +14,39 @@ public class ImageFullView : View, Gtk.VBox{
     private Gtk.SeparatorToolItem separator_r;
     
     public ImageFullView() {
-	this.set_homogeneous(false);
-	scroll_view = new Gtk.ScrolledWindow(null, null);
-	dispimage = new Gtk.Image();
-	scroll_view.add_with_viewport(dispimage);
-	separator = new Gtk.SeparatorToolItem();
-	separator.set_expand(true);
-	separator_r = new Gtk.SeparatorToolItem();
-	separator_r.set_expand(true);
-	next_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-next", Gtk.IconSize.SMALL_TOOLBAR), "Next");
-	next_button.clicked.connect(() => {
-	    if(image_id < App.to_display.size - 1) {
-		image_id++;
-		loadImage();
-	    }
-	});
-	back_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-previous", Gtk.IconSize.SMALL_TOOLBAR), "Previous");
-	back_button.clicked.connect(() => {
-	    if(image_id > 0) {
-		image_id--;
-		loadImage();
-	    }
-	});
-	toolbar = new Gtk.Toolbar();
-	toolbar.insert(back_button, 0);
-	toolbar.insert(separator, 1);
-	Gtk.ToolItem item = new Gtk.ToolItem();
-	count_label = new Gtk.Label("Image");
-	item.add(count_label);
-	toolbar.insert(item, 2);
-	toolbar.insert(separator_r, 3);
-	toolbar.insert(next_button, 4);
-	this.pack_start(toolbar, false, false, 0);
-	this.pack_start(scroll_view, true, true, 1);
+        this.set_homogeneous(false);
+        scroll_view = new Gtk.ScrolledWindow(null, null);
+        dispimage = new Gtk.Image();
+        scroll_view.add_with_viewport(dispimage);
+        separator = new Gtk.SeparatorToolItem();
+        separator.set_expand(true);
+        separator_r = new Gtk.SeparatorToolItem();
+        separator_r.set_expand(true);
+        next_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-next", Gtk.IconSize.SMALL_TOOLBAR), "Next");
+        next_button.clicked.connect(() => {
+            if(image_id < App.to_display.size - 1) {
+            image_id++;
+            loadImage();
+            }
+        });
+        back_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-previous", Gtk.IconSize.SMALL_TOOLBAR), "Previous");
+        back_button.clicked.connect(() => {
+            if(image_id > 0) {
+            image_id--;
+            loadImage();
+            }
+        });
+        toolbar = new Gtk.Toolbar();
+        toolbar.insert(back_button, 0);
+        toolbar.insert(separator, 1);
+        Gtk.ToolItem item = new Gtk.ToolItem();
+        count_label = new Gtk.Label("Image");
+        item.add(count_label);
+        toolbar.insert(item, 2);
+        toolbar.insert(separator_r, 3);
+        toolbar.insert(next_button, 4);
+        this.pack_start(toolbar, false, false, 0);
+        this.pack_start(scroll_view, true, true, 1);
     }
     
     public void resetPage() {

@@ -57,9 +57,10 @@ public class ItemList{
 		    break;
 		}
 	    }
-	    for(int i = files.index_of(to_expand) - 1; i > 0; --i) {
+	    for(int i = files.index_of(to_expand) - 1; i >= 0; --i) {
 		File f = files[i];
-		if(f.get_basename().has_prefix(title) && f.get_basename() != to_expand.get_basename()) {
+		string[] fnum = extractnumber(f.get_basename());
+		if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
 		    stdout.printf("Found " + f.get_basename() + "\n");
 		    output_list.add(f);
 		} else {
