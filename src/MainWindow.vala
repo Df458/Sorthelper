@@ -14,17 +14,19 @@ public class MainWindow : Gtk.Window{
     private Gtk.ToolButton deletebutton;
     private Gtk.ToggleToolButton batchbutton;
     private Gtk.ToolButton refreshbutton;
+    private Gtk.ToolButton addbutton;
     private Gtk.Spinner spinner;
     private GLib.Rand random;
     public ArrayList<string> list;
     private Gtk.ScrolledWindow scrollview;
     private DirItem libitem;
-    private DirItem lib2item;
-    private DirItem lib3item;
+    private DirDialog dialog;
     public string current_image_location;
     public File current_file;
     public Gtk.InfoBar errorbar;
     public ImageFullView fullview;
+    public Gtk.SearchEntry search;
+    public Gtk.Box list_box;
     
     public MainWindow(){
         list = new ArrayList<string>();
@@ -43,9 +45,14 @@ public class MainWindow : Gtk.Window{
         batchbutton = new Gtk.ToggleToolButton();
         batchbutton.set_label("Batch Mode");
         batchbutton.set_active (true);
+        search = new Gtk.SearchEntry();
+        list_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 5);
+
+        dialog = new DirDialog(this);
 
         deletebutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("edit-delete", Gtk.IconSize.SMALL_TOOLBAR), "Delete");
         refreshbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("view-refresh", Gtk.IconSize.SMALL_TOOLBAR), "Refresh");
+        addbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("list-add", Gtk.IconSize.SMALL_TOOLBAR), "Add");
         dispimage = new Gtk.Image();
         datimage = new Gtk.Image();
         scrollview = new Gtk.ScrolledWindow(null, null);
@@ -63,6 +70,7 @@ public class MainWindow : Gtk.Window{
         content.add (new Gtk.Label("A file with the same name already exists!"));
         
         loadDirItems();
+        places.set_filter_func(this.itemFilter, true);
         
         //panedview.set_vexpand(true);
         scrollview.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC);
@@ -73,22 +81,28 @@ public class MainWindow : Gtk.Window{
         deletebutton.clicked.connect(removeImage);
         batchbutton.toggled.connect(swapBatch);
         refreshbutton.clicked.connect(loadDirItems);
+        addbutton.clicked.connect(()=>{dialog.show_all();});
         //errorbar.close.connect(error_cancel);
         errorbar.response.connect(respond);
+        search.search_changed.connect(() => {places.refilter();});
         
         separator.set_expand(true);
         
         //toolbar.get_style_context ().add_class (Gtk.STYLE_CLASS_PRIMARY_TOOLBAR);
+
+        list_box.pack_start(search, false, false);
+        list_box.pack_start(places, true, true);
         
         toolbar.pack_start(skipbutton);
         toolbar.pack_start(batchbutton);
+        toolbar.pack_end(addbutton);
         toolbar.pack_end(refreshbutton);
         toolbar.pack_end(deletebutton);
         Gtk.ToolItem item = new Gtk.ToolItem();
         item.add(spinner);
         toolbar.pack_end (/*App.instance.create_appmenu (settings)*/item);
         
-        panedview.pack1(places, false, true);
+        panedview.pack1(list_box, false, true);
         panedview.pack2(fullview, true, true);
         //panedview.pack2(scrollview, true, true);
         panedview.size_allocate.connect(resizeView);
@@ -110,12 +124,12 @@ public class MainWindow : Gtk.Window{
     }
     
     void respond (int response_id) {
-	//stderr.printf("Clicked: %d", response_id);
-	
-	if(response_id == 2)
-	    removeImage();
-	container1.remove(errorbar);
-	container1.show_all();
+        //stderr.printf("Clicked: %d", response_id);
+        
+        if(response_id == 2)
+            removeImage();
+        container1.remove(errorbar);
+        container1.show_all();
     }
     
     public void loadDirItems() {
@@ -134,23 +148,23 @@ public class MainWindow : Gtk.Window{
             container1.remove(errorbar);
             container1.show_all();
         }
-	if(App.item_list.is_empty()) {
-	    return;
-	}
+        if(App.item_list.is_empty()) {
+            return;
+        }
 
-	spinner.start();
-	getImage.begin((obj, res) => {
-	    datimage.set_from_pixbuf(getImage.end(res).get_pixbuf());
-	    resizeView();
-	    fullview.resetPage();
-	    spinner.stop();
-	    toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
-	});
+        spinner.start();
+        getImage.begin((obj, res) => {
+            datimage.set_from_pixbuf(getImage.end(res).get_pixbuf());
+            resizeView();
+            fullview.resetPage();
+            spinner.stop();
+            toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
+        });
     }
     
     public void swapBatch() {
-	App.batch_mode = batchbutton.get_active();
-	//batchbutton.set_label(App.batch_mode ? "Disable batch mode" : "Enable batch mode");
+        App.batch_mode = batchbutton.get_active();
+        //batchbutton.set_label(App.batch_mode ? "Disable batch mode" : "Enable batch mode");
     }
     
     public void removeImage() {
@@ -158,34 +172,34 @@ public class MainWindow : Gtk.Window{
             container1.remove(errorbar);
             container1.show_all();
         }
-	if(App.batch_mode) {
-        stdout.printf("Removing %d images...\n", App.to_display.size);
-	    while(App.to_display.size > 0) {
-            try {
-                stdout.printf("Deleting image %s...\n", App.to_display[0].get_basename());
-                App.to_display[0].delete();
-            } catch(Error e) {
-                stderr.printf("Error: %s", e.message);
+        if(App.batch_mode) {
+            stdout.printf("Removing %d images...\n", App.to_display.size);
+            while(App.to_display.size > 0) {
+                try {
+                    stdout.printf("Deleting image %s...\n", App.to_display[0].get_basename());
+                    App.to_display[0].delete();
+                } catch(Error e) {
+                    stderr.printf("Error: %s", e.message);
+                }
+                App.item_list.remove(App.to_display[0]);
+                App.to_display.remove_at(0);
             }
-            App.item_list.remove(App.to_display[0]);
-            App.to_display.remove_at(0);
-	    }
-    } else {
-	    try {
-            stdout.printf("Deleting image %s...\n", App.to_display[fullview.image_id].get_basename());
-            App.to_display[fullview.image_id].delete();
-	    } catch(Error e) {
-		stderr.printf("Error: %s", e.message);
-	    }
-	    App.item_list.remove(App.to_display[fullview.image_id]);
-	    App.to_display.remove_at(fullview.image_id);
-	    fullview.image_id--;
-	}
-	if(App.to_display.size == 0) {
-	    loadImage();
-	} else {
-	    fullview.resetPage();
-	}
+        } else {
+            try {
+                stdout.printf("Deleting image %s...\n", App.to_display[fullview.image_id].get_basename());
+                App.to_display[fullview.image_id].delete();
+            } catch(Error e) {
+            stderr.printf("Error: %s", e.message);
+            }
+            App.item_list.remove(App.to_display[fullview.image_id]);
+            App.to_display.remove_at(fullview.image_id);
+            fullview.image_id--;
+        }
+        if(App.to_display.size == 0) {
+            loadImage();
+        } else {
+            fullview.resetPage();
+        }
     }
     
     public Gtk.Image resizeImage(Gtk.Image imagedat){
@@ -216,63 +230,66 @@ public class MainWindow : Gtk.Window{
     }
     
     private inline void setup_properties(){
-	this.window_position = Gtk.WindowPosition.CENTER;
-	this.set_default_size (800, 600);
-	this.set_title("SortHelper");
-	this.destroy.connect(on_exit);
+        this.window_position = Gtk.WindowPosition.CENTER;
+        this.set_default_size (800, 600);
+        this.set_title("SortHelper");
+        this.destroy.connect(on_exit);
     }
     
     public void build_all(){
-	setup_properties();
-	random = new GLib.Rand();
-	create_widgets();
+        setup_properties();
+        random = new GLib.Rand();
+        create_widgets();
     }
     
     public async Gtk.Image getImage(){
-	Gtk.Image image = new Gtk.Image();
-	bool worked = false;
-	int attempts = 0;
-	do{
-	    File infile = App.item_list.getFilesByCount()[0];
-//			App.to_display = App.item_list.getFilesByCount();
-	    App.to_display = yield App.item_list.getFilesByExpansion(infile);
-	    
-	    attempts++;
-	    current_image_location = "/home/df458/Downloads/.dl/" + App.to_display[0].get_basename();
-	    try{
-		Gdk.Pixbuf buf = new Gdk.Pixbuf.from_file(current_image_location);
-		image.set_from_pixbuf(buf);
-	    }catch(GLib.Error e){
-		stderr.printf(e.message);
-		worked = false;
-		continue;
-	    }
-	    worked = true;
-	}while(!worked && attempts < 1000);
-	if(attempts >= 1000)
-	    stderr.printf("Failed too many times, giving up...");
-	else
-	    stderr.printf ("Loaded " + current_image_location + "\n");
-	return image;
+        Gtk.Image image = new Gtk.Image();
+        bool worked = false;
+        int attempts = 0;
+        do{
+            File infile = App.item_list.getFilesByCount()[0];
+    //			App.to_display = App.item_list.getFilesByCount();
+            App.to_display = yield App.item_list.getFilesByExpansion(infile);
+            
+            attempts++;
+            current_image_location = "/home/df458/Downloads/.dl/" + App.to_display[0].get_basename();
+            try{
+            Gdk.Pixbuf buf = new Gdk.Pixbuf.from_file(current_image_location);
+            image.set_from_pixbuf(buf);
+            }catch(GLib.Error e){
+            stderr.printf(e.message);
+            worked = false;
+            continue;
+            }
+            worked = true;
+        }while(!worked && attempts < 1000);
+        if(attempts >= 1000)
+            stderr.printf("Failed too many times, giving up...");
+        else
+            stderr.printf ("Loaded " + current_image_location + "\n");
+        return image;
     }
 
-    public void build_directory() {
-        //DirItem selected = libitem.selected;
-        //if(selected == null)
-            //return;
-        
+    public void build_directory(string name) {
+        DirItem selected = (DirItem)places.selected;
+        if(selected == null)
+            return;
 
-        //try {
-            //File directory = File.new_for_path(selected.owned_directory.get_path() + name);
-            //directory.make_directory();
-            //selected.addChild(new DirItem.FromFile(directory));
-        //} catch(Error e) {
-            //stderr.printf("Error creating directory: %s\n", e.message);
-        //}
+        try {
+            File directory = File.new_for_path(selected.owned_directory.get_path() + "/" + name);
+            directory.make_directory();
+            selected.add(new DirItem.FromFile(directory));
+        } catch(Error e) {
+            stderr.printf("Error creating directory: %s\n", e.message);
+        }
     }
     
     private void on_exit(){
 	    //Nothing yet
+    }
+
+    public bool itemFilter(Granite.Widgets.SourceList.Item item) {
+        return ((DirItem)item).has(search.text);
     }
 }
 }

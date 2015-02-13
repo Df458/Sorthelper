@@ -90,6 +90,15 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
         return -1;
         return 0;
     }
+
+    public bool has(string str) {
+        if(name.contains(str))
+            return true;
+        foreach(Granite.Widgets.SourceList.Item child in children)
+            if(((DirItem)child).has(str))
+                return true;
+        return false;
+    }
 }
 
 }
