@@ -58,7 +58,7 @@ public class MainWindow : Gtk.Window{
         refreshbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("view-refresh", Gtk.IconSize.SMALL_TOOLBAR), "Refresh");
         addbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("list-add", Gtk.IconSize.SMALL_TOOLBAR), "Add");
         skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         dispimage = new Gtk.Image();
         datimage = new Gtk.Image();
         scrollview = new Gtk.ScrolledWindow(null, null);
