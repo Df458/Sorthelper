@@ -160,6 +160,7 @@ public class MainWindow : Gtk.Window{
     }
     
     public void loadImage() {
+        search.grab_focus();
         if(errorbar.get_parent() == container1) {
             container1.remove(errorbar);
             container1.show_all();
@@ -184,6 +185,7 @@ public class MainWindow : Gtk.Window{
     }
     
     public void removeImage() {
+        search.grab_focus();
         if(errorbar.get_parent() == container1) {
             container1.remove(errorbar);
             container1.show_all();

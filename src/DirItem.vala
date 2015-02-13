@@ -105,7 +105,7 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
     }
 
     public bool has(string str) {
-        if(name.contains(str))
+        if(name.down().contains(str.down()) || parent.name.down().contains(str.down()))
             return true;
         foreach(Granite.Widgets.SourceList.Item child in children)
             if(((DirItem)child).has(str))
