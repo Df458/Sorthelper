@@ -91,6 +91,12 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
         return 0;
     }
 
+    public void displayChildren() {
+        visible = true;
+        foreach(Granite.Widgets.SourceList.Item child in children)
+            ((DirItem)child).displayChildren();
+    }
+
     public bool has(string str) {
         if(name.contains(str))
             return true;
@@ -98,6 +104,19 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
             if(((DirItem)child).has(str))
                 return true;
         return false;
+        //visible = false;
+        //if(name.contains(str)) {
+            //displayChildren();
+            //return true;
+        //}
+
+        //foreach(Granite.Widgets.SourceList.Item child in children) {
+            //if(((DirItem)child).has(str)) {
+                //visible = true;
+            //}
+        //}
+
+        //return visible;
     }
 }
 

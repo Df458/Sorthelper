@@ -60,7 +60,6 @@ public class MainWindow : Gtk.Window{
         places = new Granite.Widgets.SourceList();
         spinner = new Gtk.Spinner();
         places.set_hexpand(false);
-        //places.set_sort_func(compareItems);
         errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
         errorbar.set_show_close_button(true);
         errorbar.set_response_sensitive(1, false);
@@ -84,7 +83,8 @@ public class MainWindow : Gtk.Window{
         addbutton.clicked.connect(()=>{dialog.show_all();});
         //errorbar.close.connect(error_cancel);
         errorbar.response.connect(respond);
-        search.search_changed.connect(() => {places.refilter();});
+        search.search_changed.connect(() => {places.refilter(); places.root.expand_all();});
+        //search.search_changed.connect(() => {libitem.has(search.text);});
         
         separator.set_expand(true);
         
@@ -128,15 +128,17 @@ public class MainWindow : Gtk.Window{
         
         if(response_id == 2)
             removeImage();
-        container1.remove(errorbar);
-        container1.show_all();
+        if(errorbar.get_parent() == container1) {
+            container1.remove(errorbar);
+            container1.show_all();
+        }
     }
     
     public void loadDirItems() {
         places.root.clear();
         libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
-        places.root.add(libitem/*.UIElement*/);
-        libitem/*.UIElement*/.expand_with_parents();
+        places.root.add(libitem);
+        libitem.expand_with_parents();
     }
     
     public void resizeView() {
@@ -289,6 +291,7 @@ public class MainWindow : Gtk.Window{
     }
 
     public bool itemFilter(Granite.Widgets.SourceList.Item item) {
+        //return true;
         return ((DirItem)item).has(search.text);
     }
 }
