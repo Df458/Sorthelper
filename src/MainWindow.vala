@@ -27,6 +27,7 @@ public class MainWindow : Gtk.Window{
     public ImageFullView fullview;
     public Gtk.SearchEntry search;
     public Gtk.Box list_box;
+    public Gtk.AccelGroup accel;
 
     public bool filtering = false;
     public bool filterreset = false;
@@ -56,6 +57,8 @@ public class MainWindow : Gtk.Window{
         deletebutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("edit-delete", Gtk.IconSize.SMALL_TOOLBAR), "Delete");
         refreshbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("view-refresh", Gtk.IconSize.SMALL_TOOLBAR), "Refresh");
         addbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("list-add", Gtk.IconSize.SMALL_TOOLBAR), "Add");
+        skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         dispimage = new Gtk.Image();
         datimage = new Gtk.Image();
         scrollview = new Gtk.ScrolledWindow(null, null);
@@ -252,6 +255,8 @@ public class MainWindow : Gtk.Window{
         this.set_default_size (800, 600);
         this.set_title("SortHelper");
         this.destroy.connect(on_exit);
+        accel = new Gtk.AccelGroup();
+        this.add_accel_group(accel);
     }
     
     public void build_all(){
