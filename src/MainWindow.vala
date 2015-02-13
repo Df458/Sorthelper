@@ -27,6 +27,9 @@ public class MainWindow : Gtk.Window{
     public ImageFullView fullview;
     public Gtk.SearchEntry search;
     public Gtk.Box list_box;
+
+    public bool filtering = false;
+    public bool filterreset = false;
     
     public MainWindow(){
         list = new ArrayList<string>();
@@ -83,7 +86,18 @@ public class MainWindow : Gtk.Window{
         addbutton.clicked.connect(()=>{dialog.show_all();});
         //errorbar.close.connect(error_cancel);
         errorbar.response.connect(respond);
-        search.search_changed.connect(() => {places.refilter(); places.root.expand_all();});
+        search.set_placeholder_text("Filter...");
+        search.search_changed.connect(() => {
+            filterreset = (search.get_text_length() == 0);
+            filtering = !filterreset;
+            places.refilter();
+            if(filterreset)
+                places.root.collapse_all();
+                //stdout.printf("search len: %d\n", search.get_text_length());
+            else
+                places.root.expand_all();
+            filterreset = false;
+        });
         //search.search_changed.connect(() => {libitem.has(search.text);});
         
         separator.set_expand(true);

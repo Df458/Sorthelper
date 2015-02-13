@@ -2,9 +2,8 @@ using GLib;
 using Gee;
 namespace SortHelper {
 public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
-    //public Granite.Widgets.SourceList.ExpandableItem UIElement;
     public File owned_directory;
-    //public ArrayList<DirItem> children;
+    public bool unfiltered_expand;
 
     public DirItem(){
     }
@@ -34,6 +33,14 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
             return;
         }
         activated.connect(activatedCallback);
+        toggled.connect(() => {
+            if(!App.main_window.filtering && !App.main_window.filterreset) { 
+                unfiltered_expand = expanded;
+            } else if(App.main_window.filterreset) {
+                expanded = unfiltered_expand;
+            } else
+                expanded = true;
+        });
         //UIElement.compare = compareItems;
     }
 
