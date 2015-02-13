@@ -53,7 +53,7 @@ public class MainWindow : Gtk.Window{
         places = new Granite.Widgets.SourceList();
         spinner = new Gtk.Spinner();
         places.set_hexpand(false);
-        places.set_sort_func(compareItems);
+        //places.set_sort_func(compareItems);
         errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
         errorbar.set_show_close_button(true);
         errorbar.set_response_sensitive(1, false);
@@ -121,8 +121,8 @@ public class MainWindow : Gtk.Window{
     public void loadDirItems() {
         places.root.clear();
         libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
-        places.root.add(libitem.UIElement);
-        libitem.UIElement.expand_with_parents();
+        places.root.add(libitem/*.UIElement*/);
+        libitem/*.UIElement*/.expand_with_parents();
     }
     
     public void resizeView() {
@@ -130,6 +130,10 @@ public class MainWindow : Gtk.Window{
     }
     
     public void loadImage() {
+        if(errorbar.get_parent() == container1) {
+            container1.remove(errorbar);
+            container1.show_all();
+        }
 	if(App.item_list.is_empty()) {
 	    return;
 	}
@@ -150,19 +154,26 @@ public class MainWindow : Gtk.Window{
     }
     
     public void removeImage() {
-	if(App.batch_mode)
+        if(errorbar.get_parent() == container1) {
+            container1.remove(errorbar);
+            container1.show_all();
+        }
+	if(App.batch_mode) {
+        stdout.printf("Removing %d images...\n", App.to_display.size);
 	    while(App.to_display.size > 0) {
-		try {
-		    App.to_display[0].delete();
-		} catch(Error e) {
-		    stderr.printf("Error: %s", e.message);
-		}
-		App.item_list.remove(App.to_display[0]);
-		App.to_display.remove_at(0);
+            try {
+                stdout.printf("Deleting image %s...\n", App.to_display[0].get_basename());
+                App.to_display[0].delete();
+            } catch(Error e) {
+                stderr.printf("Error: %s", e.message);
+            }
+            App.item_list.remove(App.to_display[0]);
+            App.to_display.remove_at(0);
 	    }
-	else {
+    } else {
 	    try {
-		App.to_display[fullview.image_id].delete();
+            stdout.printf("Deleting image %s...\n", App.to_display[fullview.image_id].get_basename());
+            App.to_display[fullview.image_id].delete();
 	    } catch(Error e) {
 		stderr.printf("Error: %s", e.message);
 	    }
@@ -243,6 +254,21 @@ public class MainWindow : Gtk.Window{
 	else
 	    stderr.printf ("Loaded " + current_image_location + "\n");
 	return image;
+    }
+
+    public void build_directory() {
+        //DirItem selected = libitem.selected;
+        //if(selected == null)
+            //return;
+        
+
+        //try {
+            //File directory = File.new_for_path(selected.owned_directory.get_path() + name);
+            //directory.make_directory();
+            //selected.addChild(new DirItem.FromFile(directory));
+        //} catch(Error e) {
+            //stderr.printf("Error creating directory: %s\n", e.message);
+        //}
     }
     
     private void on_exit(){
