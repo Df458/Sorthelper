@@ -25,9 +25,11 @@ public class MainWindow : Gtk.Window{
     public File current_file;
     public Gtk.InfoBar errorbar;
     public ImageFullView fullview;
+    public VideoView vidview;
     public Gtk.SearchEntry search;
     public Gtk.Box list_box;
     public Gtk.AccelGroup accel;
+    private Gtk.Widget current_view;
 
     public bool filtering = false;
     public bool filterreset = false;
@@ -73,6 +75,7 @@ public class MainWindow : Gtk.Window{
         errorbar.set_message_type(Gtk.MessageType.ERROR);
         Gtk.Container content = errorbar.get_content_area();
         content.add (new Gtk.Label("A file with the same name already exists!"));
+        vidview = new VideoView();
         
         loadDirItems();
         places.set_filter_func(this.itemFilter, true);
@@ -82,8 +85,8 @@ public class MainWindow : Gtk.Window{
         scrollview.set_hexpand(true);
         dispimage.set_vexpand(true);
         
-        skipbutton.clicked.connect(loadImage);
-        deletebutton.clicked.connect(removeImage);
+        skipbutton.clicked.connect(loadFile);
+        deletebutton.clicked.connect(removeFile);
         batchbutton.toggled.connect(swapBatch);
         refreshbutton.clicked.connect(loadDirItems);
         addbutton.clicked.connect(()=>{dialog.show_all();});
@@ -125,6 +128,8 @@ public class MainWindow : Gtk.Window{
         panedview.size_allocate.connect(resizeView);
         panedview.set_position(200);
         scrollview.add_with_viewport(dispimage);
+
+        current_view = fullview;
         
         container1 = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
         container1.set_homogeneous(false);
@@ -144,7 +149,7 @@ public class MainWindow : Gtk.Window{
         //stderr.printf("Clicked: %d", response_id);
         
         if(response_id == 2)
-            removeImage();
+            removeFile();
         if(errorbar.get_parent() == container1) {
             container1.remove(errorbar);
             container1.show_all();
@@ -159,10 +164,10 @@ public class MainWindow : Gtk.Window{
     }
     
     public void resizeView() {
-        dispimage.set_from_pixbuf(resizeImage(datimage).get_pixbuf());
+        //dispimage.set_from_pixbuf(resizeImage(datimage).get_pixbuf());
     }
     
-    public void loadImage() {
+    public void loadFile() {
         search.grab_focus();
         if(errorbar.get_parent() == container1) {
             container1.remove(errorbar);
@@ -173,13 +178,15 @@ public class MainWindow : Gtk.Window{
         }
 
         spinner.start();
-        getImage.begin((obj, res) => {
-            datimage.set_from_pixbuf(getImage.end(res).get_pixbuf());
-            resizeView();
-            fullview.resetPage();
-            spinner.stop();
-            toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
-        });
+        //getImage.begin((obj, res) => {
+            //datimage.set_from_pixbuf(getImage.end(res).get_pixbuf());
+            //resizeView();
+            //fullview.resetPage();
+            //spinner.stop();
+            //toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
+        //});
+
+
     }
     
     public void swapBatch() {
@@ -187,7 +194,7 @@ public class MainWindow : Gtk.Window{
         //batchbutton.set_label(App.batch_mode ? "Disable batch mode" : "Enable batch mode");
     }
     
-    public void removeImage() {
+    public void removeFile() {
         search.grab_focus();
         if(errorbar.get_parent() == container1) {
             container1.remove(errorbar);
@@ -217,38 +224,38 @@ public class MainWindow : Gtk.Window{
             fullview.image_id--;
         }
         if(App.to_display.size == 0) {
-            loadImage();
+            loadFile();
         } else {
             fullview.resetPage();
         }
     }
     
-    public Gtk.Image resizeImage(Gtk.Image imagedat){
-	    //Gtk.Image image = new Gtk.Image();
-	    //int oldwidth = imagedat.get_pixbuf().get_width();
-	    //int oldheight = imagedat.get_pixbuf().get_height();
-	    //int width = this.scrollview.get_allocated_width();
-	    //int height = this.scrollview.get_allocated_height();
-	    //if(oldwidth < width && oldheight < height){
-		    //width = oldwidth;
-		    //height = oldheight;
-	    //}else{
-		    //float wdiff = (float)width / (float)oldwidth;
-		    //float hdiff = (float)height / (float)oldheight;
-		    //if(wdiff > hdiff){
-			    //width = (int)(oldwidth * hdiff);
-			    //height = (int)(oldheight * hdiff);
-		    //}else{
-			    //width = (int)(oldwidth * wdiff);
-			    //height = (int)(oldheight * wdiff);
-		    //}
-	    //}
-	    //if(width <= 0 || height <= 0)
-		    //return imagedat;
-	    //image.set_from_pixbuf(imagedat.get_pixbuf().scale_simple(width, height, Gdk.InterpType.BILINEAR));
-	    //return image;
-	return imagedat;
-    }
+    //public Gtk.Image resizeImage(Gtk.Image imagedat){
+		////Gtk.Image image = new Gtk.Image();
+		////int oldwidth = imagedat.get_pixbuf().get_width();
+		////int oldheight = imagedat.get_pixbuf().get_height();
+		////int width = this.scrollview.get_allocated_width();
+		////int height = this.scrollview.get_allocated_height();
+		////if(oldwidth < width && oldheight < height){
+			////width = oldwidth;
+			////height = oldheight;
+		////}else{
+			////float wdiff = (float)width / (float)oldwidth;
+			////float hdiff = (float)height / (float)oldheight;
+			////if(wdiff > hdiff){
+				////width = (int)(oldwidth * hdiff);
+				////height = (int)(oldheight * hdiff);
+			////}else{
+				////width = (int)(oldwidth * wdiff);
+				////height = (int)(oldheight * wdiff);
+			////}
+		////}
+		////if(width <= 0 || height <= 0)
+			////return imagedat;
+		////image.set_from_pixbuf(imagedat.get_pixbuf().scale_simple(width, height, Gdk.InterpType.BILINEAR));
+		////return image;
+	//return imagedat;
+    //}
     
     private inline void setup_properties(){
         this.window_position = Gtk.WindowPosition.CENTER;
@@ -269,7 +276,7 @@ public class MainWindow : Gtk.Window{
         Gtk.Image image = new Gtk.Image();
         bool worked = false;
         int attempts = 0;
-        do{
+        do {
             File infile = App.item_list.getFilesByCount()[0];
     //			App.to_display = App.item_list.getFilesByCount();
             App.to_display = yield App.item_list.getFilesByExpansion(infile);
@@ -277,20 +284,33 @@ public class MainWindow : Gtk.Window{
             attempts++;
             current_image_location = "/home/df458/Downloads/.dl/" + App.to_display[0].get_basename();
             try{
-            Gdk.Pixbuf buf = new Gdk.Pixbuf.from_file(current_image_location);
-            image.set_from_pixbuf(buf);
+                Gdk.PixbufAnimation buf = new Gdk.PixbufAnimation.from_file(current_image_location);
+                if(buf.is_static_image())
+                    image.set_from_pixbuf(buf.get_static_image());
+                else
+                    image.set_from_animation(buf);
             }catch(GLib.Error e){
-            stderr.printf(e.message);
-            worked = false;
-            continue;
+                stderr.printf(e.message);
+                worked = false;
+                continue;
             }
             worked = true;
         }while(!worked && attempts < 1000);
-        if(attempts >= 1000)
+        if(attempts >= 1000) {
             stderr.printf("Failed too many times, giving up...");
-        else
+        } else
             stderr.printf ("Loaded " + current_image_location + "\n");
         return image;
+    }
+
+    public void set_content(Gtk.Widget widget) {
+        int pos = panedview.get_position();
+        panedview.remove(current_view);
+        panedview.set_position(0);
+        panedview.pack2(widget, true, false);
+        current_view = widget;
+        panedview.set_position(pos);
+        this.show_all();
     }
 
     public void build_directory(string name) {
