@@ -24,12 +24,18 @@ public class MainWindow : Gtk.Window{
     public string current_image_location;
     public File current_file;
     public Gtk.InfoBar errorbar;
+
     public ImageFullView fullview;
     public VideoView vidview;
+    public EmptyView empty_view;
+    public DefaultView default_view;
+    public AudioView audio_view;
+
     public Gtk.SearchEntry search;
     public Gtk.Box list_box;
     public Gtk.AccelGroup accel;
     private Gtk.Widget current_view;
+    private View chosen_view;
 
     public bool filtering = false;
     public bool filterreset = false;
@@ -64,7 +70,14 @@ public class MainWindow : Gtk.Window{
         dispimage = new Gtk.Image();
         datimage = new Gtk.Image();
         scrollview = new Gtk.ScrolledWindow(null, null);
+        
         fullview = new ImageFullView();
+        default_view = new DefaultView();
+        empty_view = new EmptyView();
+        audio_view = new AudioView();
+        vidview = new VideoView();
+        chosen_view = empty_view;
+
         places = new Granite.Widgets.SourceList();
         spinner = new Gtk.Spinner();
         places.set_hexpand(false);
@@ -75,7 +88,6 @@ public class MainWindow : Gtk.Window{
         errorbar.set_message_type(Gtk.MessageType.ERROR);
         Gtk.Container content = errorbar.get_content_area();
         content.add (new Gtk.Label("A file with the same name already exists!"));
-        vidview = new VideoView();
         
         loadDirItems();
         places.set_filter_func(this.itemFilter, true);
@@ -178,20 +190,15 @@ public class MainWindow : Gtk.Window{
         }
 
         spinner.start();
-        //getImage.begin((obj, res) => {
-            //datimage.set_from_pixbuf(getImage.end(res).get_pixbuf());
-            //resizeView();
-            //fullview.resetPage();
-            //spinner.stop();
-            //toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
-        //});
-
-
+        getFiles.begin((obj, res) => {
+            display_files();
+            toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
+            spinner.stop();
+        });
     }
     
     public void swapBatch() {
         App.batch_mode = batchbutton.get_active();
-        //batchbutton.set_label(App.batch_mode ? "Disable batch mode" : "Enable batch mode");
     }
     
     public void removeFile() {
@@ -226,36 +233,9 @@ public class MainWindow : Gtk.Window{
         if(App.to_display.size == 0) {
             loadFile();
         } else {
-            fullview.resetPage();
+            resetView();
         }
     }
-    
-    //public Gtk.Image resizeImage(Gtk.Image imagedat){
-		////Gtk.Image image = new Gtk.Image();
-		////int oldwidth = imagedat.get_pixbuf().get_width();
-		////int oldheight = imagedat.get_pixbuf().get_height();
-		////int width = this.scrollview.get_allocated_width();
-		////int height = this.scrollview.get_allocated_height();
-		////if(oldwidth < width && oldheight < height){
-			////width = oldwidth;
-			////height = oldheight;
-		////}else{
-			////float wdiff = (float)width / (float)oldwidth;
-			////float hdiff = (float)height / (float)oldheight;
-			////if(wdiff > hdiff){
-				////width = (int)(oldwidth * hdiff);
-				////height = (int)(oldheight * hdiff);
-			////}else{
-				////width = (int)(oldwidth * wdiff);
-				////height = (int)(oldheight * wdiff);
-			////}
-		////}
-		////if(width <= 0 || height <= 0)
-			////return imagedat;
-		////image.set_from_pixbuf(imagedat.get_pixbuf().scale_simple(width, height, Gdk.InterpType.BILINEAR));
-		////return image;
-	//return imagedat;
-    //}
     
     private inline void setup_properties(){
         this.window_position = Gtk.WindowPosition.CENTER;
@@ -272,35 +252,84 @@ public class MainWindow : Gtk.Window{
         create_widgets();
     }
     
+    public async bool getFiles() {
+        File infile = App.item_list.getFilesByCount()[0];
+        App.to_display = yield App.item_list.getFilesByExpansion(infile);
+        return true;
+    }
+    
+    public void display_files() {
+        chosen_view.unload();
+        if(App.to_display.is_empty)
+            set_content(empty_view);
+        else {
+            chosen_view = default_view;
+            try {
+                string filetype = App.to_display[0].query_info("standard::content-type", 0, null).get_content_type();
+                stdout.printf("Got type: %s\n", filetype);
+                switch(filetype) {
+                    case "audio/mpeg":
+                        chosen_view = audio_view;
+                        break;
+
+                    case "image/gif":
+                    case "image/jpeg":
+                    case "image/png":
+                        chosen_view = fullview;
+                        break;
+
+                    case "video/mp4":
+                    case "video/webm":
+                    case "video/x-flv":
+                        chosen_view = vidview;
+                        break;
+
+                    default:
+                        chosen_view = default_view;
+                        break;
+                }
+            } catch(Error e) {
+                stderr.printf("Error getting mimetype: %s\n", e.message);
+            }
+            chosen_view.load();
+            set_content(chosen_view);
+            chosen_view.display();
+        }
+    }
+
     public async Gtk.Image getImage(){
         Gtk.Image image = new Gtk.Image();
-        bool worked = false;
-        int attempts = 0;
-        do {
-            File infile = App.item_list.getFilesByCount()[0];
-    //			App.to_display = App.item_list.getFilesByCount();
-            App.to_display = yield App.item_list.getFilesByExpansion(infile);
+        //bool worked = false;
+        //int attempts = 0;
+        //do {
+            //File infile = App.item_list.getFilesByCount()[0];
+    ////			App.to_display = App.item_list.getFilesByCount();
+            //App.to_display = yield App.item_list.getFilesByExpansion(infile);
             
-            attempts++;
-            current_image_location = "/home/df458/Downloads/.dl/" + App.to_display[0].get_basename();
-            try{
-                Gdk.PixbufAnimation buf = new Gdk.PixbufAnimation.from_file(current_image_location);
-                if(buf.is_static_image())
-                    image.set_from_pixbuf(buf.get_static_image());
-                else
-                    image.set_from_animation(buf);
-            }catch(GLib.Error e){
-                stderr.printf(e.message);
-                worked = false;
-                continue;
-            }
-            worked = true;
-        }while(!worked && attempts < 1000);
-        if(attempts >= 1000) {
-            stderr.printf("Failed too many times, giving up...");
-        } else
-            stderr.printf ("Loaded " + current_image_location + "\n");
+            //attempts++;
+            //current_image_location = "/home/df458/Downloads/.dl/" + App.to_display[0].get_basename();
+            //try{
+                //Gdk.PixbufAnimation buf = new Gdk.PixbufAnimation.from_file(current_image_location);
+                //if(buf.is_static_image())
+                    //image.set_from_pixbuf(buf.get_static_image());
+                //else
+                    //image.set_from_animation(buf);
+            //}catch(GLib.Error e){
+                //stderr.printf(e.message);
+                //worked = false;
+                //continue;
+            //}
+            //worked = true;
+        //}while(!worked && attempts < 1000);
+        //if(attempts >= 1000) {
+            //stderr.printf("Failed too many times, giving up...");
+        //} else
+            //stderr.printf ("Loaded " + current_image_location + "\n");
         return image;
+    }
+
+    public void resetView() {
+        chosen_view.fileRemoved();
     }
 
     public void set_content(Gtk.Widget widget) {
@@ -328,7 +357,7 @@ public class MainWindow : Gtk.Window{
     }
     
     private void on_exit(){
-	    //Nothing yet
+        chosen_view.unload();
     }
 
     public bool itemFilter(Granite.Widgets.SourceList.Item item) {

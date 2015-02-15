@@ -84,9 +84,9 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
             App.to_display.remove_at(sel);
         }
         if(App.to_display.size == 0) {
-            App.main_window.loadImage();
+            App.main_window.loadFile();
         } else {
-            App.main_window.fullview.resetPage();
+            App.main_window.resetView();
         }
     }
 

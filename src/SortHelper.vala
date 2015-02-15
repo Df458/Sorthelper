@@ -42,7 +42,7 @@ public class App : Granite.Application{
 	    main_window = new MainWindow();
 	    main_window.build_all();
 	    main_window.set_application(this);
-	    main_window.loadImage();
+	    main_window.loadFile();
 	    main_window.present();
 	}
     }
