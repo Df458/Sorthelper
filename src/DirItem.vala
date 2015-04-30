@@ -73,7 +73,8 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
                 string name = f.query_info ("standard::*", 0).get_name();
                 File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
                 f.move(f2, FileCopyFlags.ALL_METADATA);
-                App.main_window.fullview.image_id--;
+                if(App.main_window.fullview.image_id >= App.to_display.size)
+                    App.main_window.fullview.image_id--;
             } catch (Error e) {
                 stderr.printf ("IO Error: %s\n", e.message);
                 App.main_window.container1.pack_end(App.main_window.errorbar, false, false);

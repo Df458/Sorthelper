@@ -188,6 +188,7 @@ public class MainWindow : Gtk.Window{
             container1.show_all();
         }
         if(App.item_list.is_empty()) {
+            set_content(empty_view);
             return;
         }
 
@@ -230,7 +231,10 @@ public class MainWindow : Gtk.Window{
             }
             App.item_list.remove(App.to_display[fullview.image_id]);
             App.to_display.remove_at(fullview.image_id);
-            fullview.image_id--;
+            //stderr.printf("ID: %d / %d", fullview.image_id, App.to_display.size);
+            if(fullview.image_id >= App.to_display.size)
+                fullview.image_id--;
+            //stderr.printf("NEW ID: %d / %d", fullview.image_id, App.to_display.size);
         }
         if(App.to_display.size == 0) {
             loadFile();
