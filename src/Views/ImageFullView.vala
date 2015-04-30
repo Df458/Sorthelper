@@ -55,7 +55,11 @@ namespace SortHelper{
         //}
 
         public void resize() {
-            dispimage.set_from_pixbuf(resizeImage(datimage).get_pixbuf());
+            if(datimage.get_pixbuf() != null) {
+                dispimage.set_from_pixbuf(resizeImage(datimage).get_pixbuf());
+            } else if(datimage.get_animation() != null) {
+                dispimage.set_from_animation(datimage.get_animation());
+            }
         }
 
         public void loadImage() {
@@ -118,10 +122,14 @@ namespace SortHelper{
             Gtk.Image image = new Gtk.Image();
             try{
                 Gdk.PixbufAnimation buf = new Gdk.PixbufAnimation.from_file(App.to_display[image_id].get_path());
+                if(buf == null)
+                    stderr.printf("ERROR: Animation is null!\n");
                 if(buf.is_static_image())
                     image.set_from_pixbuf(buf.get_static_image());
-                else
+                else {
+                    stdout.printf("Got animation\n");
                     image.set_from_animation(buf);
+                }
             }catch(GLib.Error e){
                 stderr.printf("Failed to load image: %s\n", e.message);
             }

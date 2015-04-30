@@ -30,6 +30,7 @@ public class MainWindow : Gtk.Window{
     public EmptyView empty_view;
     public DefaultView default_view;
     public AudioView audio_view;
+    public WebView web_view;
 
     public Gtk.SearchEntry search;
     public Gtk.Box list_box;
@@ -76,6 +77,7 @@ public class MainWindow : Gtk.Window{
         empty_view = new EmptyView();
         audio_view = new AudioView();
         vidview = new VideoView();
+        web_view = new WebView();
         chosen_view = empty_view;
 
         places = new Granite.Widgets.SourceList();
@@ -282,6 +284,11 @@ public class MainWindow : Gtk.Window{
                     case "video/webm":
                     case "video/x-flv":
                         chosen_view = vidview;
+                        break;
+
+                    case "application/vnd.adobe.flash.movie":
+                        web_view.is_swf = true;
+                        chosen_view = web_view;
                         break;
 
                     default:
