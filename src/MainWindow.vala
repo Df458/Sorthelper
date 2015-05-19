@@ -15,6 +15,8 @@ public class MainWindow : Gtk.Window{
     private Gtk.ToggleToolButton batchbutton;
     private Gtk.ToolButton refreshbutton;
     private Gtk.ToolButton addbutton;
+    private Gtk.ToolButton openbutton;
+    private Gtk.Popover open_pop;
     private Gtk.Spinner spinner;
     private GLib.Rand random;
     public ArrayList<string> list;
@@ -24,6 +26,8 @@ public class MainWindow : Gtk.Window{
     public string current_image_location;
     public File current_file;
     public Gtk.InfoBar errorbar;
+    public Gtk.FileChooserButton folder_selector;
+    public Gtk.Button folder_button;
 
     public ImageFullView fullview;
     public VideoView vidview;
@@ -41,11 +45,13 @@ public class MainWindow : Gtk.Window{
     public bool filtering = false;
     public bool filterreset = false;
     
-    public MainWindow(){
+    public MainWindow()
+    {
         list = new ArrayList<string>();
     }
     
-    private void create_widgets(){
+    private void create_widgets()
+    {
         toolbar = new Gtk.HeaderBar();
         toolbar.set_title("Sorthelper");
         toolbar.set_subtitle("Completion: ");
@@ -66,6 +72,7 @@ public class MainWindow : Gtk.Window{
         deletebutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("edit-delete", Gtk.IconSize.SMALL_TOOLBAR), "Delete");
         refreshbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("view-refresh", Gtk.IconSize.SMALL_TOOLBAR), "Refresh");
         addbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("list-add", Gtk.IconSize.SMALL_TOOLBAR), "Add");
+        openbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("document-open", Gtk.IconSize.SMALL_TOOLBAR), "Open");
         skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         dispimage = new Gtk.Image();
@@ -85,11 +92,23 @@ public class MainWindow : Gtk.Window{
         places.set_hexpand(false);
         errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
         errorbar.set_show_close_button(true);
-        errorbar.set_response_sensitive(1, false);
+        errorbar.set_response_sensitive(1, true);
         errorbar.set_response_sensitive(2, true);
         errorbar.set_message_type(Gtk.MessageType.ERROR);
         Gtk.Container content = errorbar.get_content_area();
         content.add (new Gtk.Label("A file with the same name already exists!"));
+
+        folder_selector = new Gtk.FileChooserButton("Add a Folder", Gtk.FileChooserAction.SELECT_FOLDER);
+        folder_button = new Gtk.Button.with_label("Add...");
+        folder_button.clicked.connect(() => {
+            addDir(folder_selector.get_file());
+            open_pop.hide();
+        });
+        open_pop = new Gtk.Popover(openbutton);
+        Gtk.Box pop_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+        pop_box.pack_start(folder_selector);
+        pop_box.pack_start(folder_button);
+        open_pop.child = pop_box;
         
         loadDirItems();
         places.set_filter_func(this.itemFilter, true);
@@ -103,6 +122,9 @@ public class MainWindow : Gtk.Window{
         deletebutton.clicked.connect(removeFile);
         batchbutton.toggled.connect(swapBatch);
         refreshbutton.clicked.connect(loadDirItems);
+        openbutton.clicked.connect(() => {
+            open_pop.show_all();
+        });
         addbutton.clicked.connect(()=>{dialog.show_all();});
         //errorbar.close.connect(error_cancel);
         errorbar.response.connect(respond);
@@ -129,6 +151,7 @@ public class MainWindow : Gtk.Window{
         
         toolbar.pack_start(skipbutton);
         toolbar.pack_start(batchbutton);
+        toolbar.pack_end(openbutton);
         toolbar.pack_end(addbutton);
         toolbar.pack_end(refreshbutton);
         toolbar.pack_end(deletebutton);
@@ -159,9 +182,12 @@ public class MainWindow : Gtk.Window{
         this.show_all();
     }
     
-    void respond (int response_id) {
+    void respond (int response_id)
+    {
         //stderr.printf("Clicked: %d", response_id);
         
+        if(response_id == 1)
+            replaceFile();
         if(response_id == 2)
             removeFile();
         if(errorbar.get_parent() == container1) {
@@ -170,24 +196,28 @@ public class MainWindow : Gtk.Window{
         }
     }
     
-    public void loadDirItems() {
+    public void loadDirItems()
+    {
         places.root.clear();
         libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
         places.root.add(libitem);
         libitem.expand_with_parents();
     }
     
-    public void resizeView() {
+    public void resizeView()
+    {
         //dispimage.set_from_pixbuf(resizeImage(datimage).get_pixbuf());
     }
     
-    public void loadFile() {
+    public void loadFile()
+    {
         search.grab_focus();
         if(errorbar.get_parent() == container1) {
             container1.remove(errorbar);
             container1.show_all();
         }
         if(App.item_list.is_empty()) {
+            toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
             set_content(empty_view);
             return;
         }
@@ -200,11 +230,58 @@ public class MainWindow : Gtk.Window{
         });
     }
     
-    public void swapBatch() {
+    public void swapBatch()
+    {
         App.batch_mode = batchbutton.get_active();
     }
     
-    public void removeFile() {
+    public void replaceFile() {
+        search.grab_focus();
+        if(errorbar.get_parent() == container1) {
+            container1.remove(errorbar);
+            container1.show_all();
+        }
+        if(App.batch_mode) {
+            stdout.printf("Replacing %d images...\n", App.to_display.size);
+            while(App.to_display.size > 0) {
+                try {
+                    File f = File.new_for_path (App.to_display[0].get_path());
+                    string name = f.query_info ("standard::*", 0).get_name();
+                    File dest = File.new_for_path(App.last_dest + "/" + name);
+                    stdout.printf("Moving image %s...\n", App.to_display[0].get_basename());
+                    App.to_display[0].move(dest, FileCopyFlags.OVERWRITE);
+                } catch(Error e) {
+                    stderr.printf("Error: %s", e.message);
+                }
+                App.item_list.remove(App.to_display[0]);
+                App.to_display.remove_at(0);
+            }
+        } else {
+            try {
+                File f = File.new_for_path (App.to_display[fullview.image_id].get_path());
+                string name = f.query_info ("standard::*", 0).get_name();
+                File dest = File.new_for_path(App.last_dest + "/" + name);
+                stdout.printf("Moving image %s...\n", App.to_display[fullview.image_id].get_basename());
+                App.to_display[fullview.image_id].move(dest, FileCopyFlags.OVERWRITE);
+            } catch(Error e) {
+                stderr.printf("Error: %s", e.message);
+            }
+            App.item_list.remove(App.to_display[fullview.image_id]);
+            App.to_display.remove_at(fullview.image_id);
+            //stderr.printf("ID: %d / %d", fullview.image_id, App.to_display.size);
+            if(fullview.image_id >= App.to_display.size)
+                fullview.image_id--;
+            //stderr.printf("NEW ID: %d / %d", fullview.image_id, App.to_display.size);
+        }
+        if(App.to_display.size == 0) {
+            loadFile();
+        } else {
+            resetView();
+        }
+    }
+
+    public void removeFile()
+    {
         search.grab_focus();
         if(errorbar.get_parent() == container1) {
             container1.remove(errorbar);
@@ -243,7 +320,8 @@ public class MainWindow : Gtk.Window{
         }
     }
     
-    private inline void setup_properties(){
+    private inline void setup_properties()
+    {
         this.window_position = Gtk.WindowPosition.CENTER;
         this.set_default_size (800, 600);
         this.set_title("SortHelper");
@@ -252,19 +330,22 @@ public class MainWindow : Gtk.Window{
         this.add_accel_group(accel);
     }
     
-    public void build_all(){
+    public void build_all()
+    {
         setup_properties();
         random = new GLib.Rand();
         create_widgets();
     }
     
-    public async bool getFiles() {
+    public async bool getFiles()
+    {
         File infile = App.item_list.getFilesByCount()[0];
         App.to_display = yield App.item_list.getFilesByExpansion(infile);
         return true;
     }
     
-    public void display_files() {
+    public void display_files()
+    {
         chosen_view.unload();
         if(App.to_display.is_empty)
             set_content(empty_view);
@@ -308,42 +389,13 @@ public class MainWindow : Gtk.Window{
         }
     }
 
-    public async Gtk.Image getImage(){
-        Gtk.Image image = new Gtk.Image();
-        //bool worked = false;
-        //int attempts = 0;
-        //do {
-            //File infile = App.item_list.getFilesByCount()[0];
-    ////			App.to_display = App.item_list.getFilesByCount();
-            //App.to_display = yield App.item_list.getFilesByExpansion(infile);
-            
-            //attempts++;
-            //current_image_location = "/home/df458/Downloads/.dl/" + App.to_display[0].get_basename();
-            //try{
-                //Gdk.PixbufAnimation buf = new Gdk.PixbufAnimation.from_file(current_image_location);
-                //if(buf.is_static_image())
-                    //image.set_from_pixbuf(buf.get_static_image());
-                //else
-                    //image.set_from_animation(buf);
-            //}catch(GLib.Error e){
-                //stderr.printf(e.message);
-                //worked = false;
-                //continue;
-            //}
-            //worked = true;
-        //}while(!worked && attempts < 1000);
-        //if(attempts >= 1000) {
-            //stderr.printf("Failed too many times, giving up...");
-        //} else
-            //stderr.printf ("Loaded " + current_image_location + "\n");
-        return image;
-    }
-
-    public void resetView() {
+    public void resetView()
+    {
         chosen_view.fileRemoved();
     }
 
-    public void set_content(Gtk.Widget widget) {
+    public void set_content(Gtk.Widget widget)
+    {
         int pos = panedview.get_position();
         panedview.remove(current_view);
         panedview.set_position(0);
@@ -353,7 +405,8 @@ public class MainWindow : Gtk.Window{
         this.show_all();
     }
 
-    public void build_directory(string name) {
+    public void build_directory(string name)
+    {
         DirItem selected = (DirItem)places.selected;
         if(selected == null)
             return;
@@ -367,13 +420,20 @@ public class MainWindow : Gtk.Window{
         }
     }
     
-    private void on_exit(){
+    private void on_exit()
+    {
         chosen_view.unload();
     }
 
-    public bool itemFilter(Granite.Widgets.SourceList.Item item) {
+    public bool itemFilter(Granite.Widgets.SourceList.Item item)
+    {
         //return true;
         return ((DirItem)item).has(search.text);
+    }
+
+    public void addDir(File f)
+    {
+        places.root.add(new DirItem.FromFile(f));
     }
 }
 }

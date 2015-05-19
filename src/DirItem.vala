@@ -52,15 +52,17 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
     public void activatedCallback(){
         if(App.batch_mode) {
             for(int i = 0; i < App.to_display.size; ++i) {	
+                string name;
+                File f = File.new_for_path (App.to_display[i].get_path());
+                name = f.query_info ("standard::*", 0).get_name();
                 try{
-                    File f = File.new_for_path (App.to_display[i].get_path());
-                    string name = f.query_info ("standard::*", 0).get_name();
                     File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
                     f.move(f2, FileCopyFlags.ALL_METADATA);
                 } catch (Error e) {
                     stderr.printf ("IO Error: %s\n", e.message);
                     App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
                     App.main_window.container1.show_all();
+                    App.last_dest = owned_directory.get_path();
                     continue;
                 }
                 App.item_list.remove(App.to_display[i]);
@@ -69,9 +71,9 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
             }
         } else {
             int sel = App.main_window.fullview.image_id;
+            File f = File.new_for_path (App.to_display[sel].get_path());
+            string name = f.query_info ("standard::*", 0).get_name();
             try{
-                File f = File.new_for_path (App.to_display[sel].get_path());
-                string name = f.query_info ("standard::*", 0).get_name();
                 File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
                 f.move(f2, FileCopyFlags.ALL_METADATA);
                 if(App.main_window.fullview.image_id >= App.to_display.size)
@@ -80,6 +82,7 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
                 stderr.printf ("IO Error: %s\n", e.message);
                 App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
                 App.main_window.container1.show_all();
+                App.last_dest = owned_directory.get_path();
                 return;
             }
             App.item_list.remove(App.to_display[sel]);
