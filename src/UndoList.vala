@@ -5,8 +5,8 @@ namespace SortHelper
 
 public struct Motion
 {
-    File new_position;
-    string old_folder;
+    ArrayList<File> new_position;
+    ArrayList<string> old_folder;
 }
 
 public class UndoList
@@ -25,21 +25,53 @@ public class UndoList
 
     public bool undo()
     {
-        // TODO: Take the last past value, and place the move in the future
-        
+        if(past.size == 0)
+            return false;
+
+        Motion to_undo = past[past.size - 1];
+        past.remove_at(past.size - 1);
+        to_undo = move(to_undo);
+        future.add(to_undo);
+        App.item_list.add_list(to_undo.new_position);
+        App.to_display = to_undo.new_position;
+        App.main_window.display_files();
+
         return true;
     }
 
     public bool redo()
     {
-        // TODO: Take the last future value, and place the move in the past
+        if(future.size == 0)
+            return false;
+
+        Motion to_redo = future[future.size - 1];
+        future.remove_at(future.size - 1);
+        App.item_list.remove_list(to_redo.new_position);
+        to_redo = move(to_redo);
+        past.add(to_redo);
+        App.main_window.loadFile();
 
         return true;
     }
 
+    public void update(Motion moved)
+    {
+        int prev = past.size;
+        past.add(moved);
+        int next = past.size;
+        future.clear();
+    }
+
     private Motion move(Motion to_move)
     {
-        // TODO: Move the image to old_folder, then flip the values
+        for(int i = 0; i < to_move.new_position.size; ++i) {
+            string source = to_move.new_position[i].get_parent().get_path();
+            string name = to_move.new_position[i].query_info ("standard::*", 0).get_name();
+            File dest = File.new_for_path(to_move.old_folder[i] + "/" + name);
+            to_move.new_position[i].move(dest, FileCopyFlags.OVERWRITE);
+            to_move.new_position[i] = dest;
+            to_move.old_folder[i] = source;
+        }
 
         return to_move;
     }

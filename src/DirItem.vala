@@ -50,14 +50,20 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
     }
     
     public void activatedCallback(){
+        Motion move = new Motion();
+        move.new_position = new ArrayList<File>();
+        move.old_folder = new ArrayList<string>();
         if(App.batch_mode) {
             for(int i = 0; i < App.to_display.size; ++i) {	
                 string name;
                 File f = File.new_for_path (App.to_display[i].get_path());
+                string source = f.get_parent().get_path();
                 name = f.query_info ("standard::*", 0).get_name();
                 try{
                     File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
                     f.move(f2, FileCopyFlags.ALL_METADATA);
+                    move.new_position.add(f2);
+                    move.old_folder.add(source);
                 } catch (Error e) {
                     stderr.printf ("IO Error: %s\n", e.message);
                     App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
@@ -69,15 +75,20 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
                 App.to_display.remove_at(i);
                 --i;
             }
+            if(move.new_position.size > 0)
+                App.undo_list.update(move);
         } else {
             int sel = App.main_window.fullview.image_id;
             File f = File.new_for_path (App.to_display[sel].get_path());
+            string source = f.get_parent().get_path();
             string name = f.query_info ("standard::*", 0).get_name();
             try{
                 File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
                 f.move(f2, FileCopyFlags.ALL_METADATA);
                 if(App.main_window.fullview.image_id >= App.to_display.size)
                     App.main_window.fullview.image_id--;
+                move.new_position.add(f2);
+                move.old_folder.add(owned_directory.get_path());
             } catch (Error e) {
                 stderr.printf ("IO Error: %s\n", e.message);
                 App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
@@ -85,6 +96,9 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
                 App.last_dest = owned_directory.get_path();
                 return;
             }
+            move.new_position.add(f);
+            move.old_folder.add(source);
+            App.undo_list.update(move);
             App.item_list.remove(App.to_display[sel]);
             App.to_display.remove_at(sel);
         }
@@ -131,5 +145,4 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
         //return visible;
     }
 }
-
 }

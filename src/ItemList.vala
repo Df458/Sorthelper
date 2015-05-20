@@ -1,14 +1,17 @@
 using GLib;
 using Gee;
-namespace SortHelper{
-public class ItemList{
+namespace SortHelper
+{
+public class ItemList
+{
     protected ArrayList<File> files;
     private GLib.Rand random;
     public File origin_folder;
     public int orig_size = 0;
     public int size { get {return files.size;} }
     
-    public ItemList.from_folder(File infile) {
+    public ItemList.from_folder(File infile)
+    {
         origin_folder = infile;
         random = new GLib.Rand();
         try {
@@ -27,56 +30,60 @@ public class ItemList{
         orig_size = files.size;
     }
     
-    public bool is_empty() {
-	return files.size <= 0;
+    public bool is_empty()
+    {
+        return files.size <= 0;
     }
     
-    public ArrayList<File> getFilesByCount(int count = 1, bool randomize = true){
+    public ArrayList<File> getFilesByCount(int count = 1, bool randomize = true)
+    {
         ArrayList<File> output_list = new ArrayList<File>();
         for(int i = 0; i < count; ++i)
             output_list.add(files[randomize ? random.int_range(0, files.size) : i]);
         return output_list;
     }
     
-    public async ArrayList<File> getFilesByExpansion(File to_expand) {
-	ArrayList<File> output_list = new ArrayList<File>();
-    
-	output_list.add(to_expand);
-	string title = to_expand.get_basename();
-	stdout.printf("Expanding %s...", title);
-	stdout.flush();
-	string[] tnum = extractnumber(title);
+    public async ArrayList<File> getFilesByExpansion(File to_expand)
+    {
+        ArrayList<File> output_list = new ArrayList<File>();
+        
+        output_list.add(to_expand);
+        string title = to_expand.get_basename();
+        stdout.printf("Expanding %s...", title);
+        stdout.flush();
+        string[] tnum = extractnumber(title);
 
-	if(tnum.length == 3 && (tnum[0] != "" || !tnum[2].has_prefix("."))) {
-	    for(int i = files.index_of(to_expand) + 1; i < files.size; ++i) {
-		File f = files[i];
-		string[] fnum = extractnumber(f.get_basename());
-		if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
-		    stdout.printf("Found " + f.get_basename() + "\n");
-		    output_list.add(f);
-		} else {
-		    stdout.printf("Stop at " + f.get_basename() + "\n");
-		    break;
-		}
-	    }
-	    for(int i = files.index_of(to_expand) - 1; i >= 0; --i) {
-		File f = files[i];
-		string[] fnum = extractnumber(f.get_basename());
-		if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
-		    stdout.printf("Found " + f.get_basename() + "\n");
-		    output_list.add(f);
-		} else {
-		    stdout.printf("Stop at " + f.get_basename() + "\n");
-		    break;
-		}
-	    }
-	}
-	output_list.sort(alphasort);
+        if(tnum.length == 3 && (tnum[0] != "" || !tnum[2].has_prefix("."))) {
+            for(int i = files.index_of(to_expand) + 1; i < files.size; ++i) {
+                File f = files[i];
+                string[] fnum = extractnumber(f.get_basename());
+                if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
+                    stdout.printf("Found " + f.get_basename() + "\n");
+                    output_list.add(f);
+                } else {
+                    stdout.printf("Stop at " + f.get_basename() + "\n");
+                    break;
+                }
+            }
+            for(int i = files.index_of(to_expand) - 1; i >= 0; --i) {
+                File f = files[i];
+                string[] fnum = extractnumber(f.get_basename());
+                if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
+                    stdout.printf("Found " + f.get_basename() + "\n");
+                    output_list.add(f);
+                } else {
+                    stdout.printf("Stop at " + f.get_basename() + "\n");
+                    break;
+                }
+            }
+        }
+        output_list.sort(alphasort);
 
-	return output_list;
+        return output_list;
     }
 
-    private string[] extractnumber(string input) {
+    private string[] extractnumber(string input)
+    {
         for(int i = input.length - 1; i >= 0; --i) {
             if(input[i] >= '0' && input[i] <= '9') {
                 int j;
@@ -87,12 +94,8 @@ public class ItemList{
         return {input};
     }
     
-    public int alphasort(File a, File b) {
-        //if(a.get_basename() < b.get_basename())
-            //return -1;
-        //else if(a.get_basename() == b.get_basename())
-            //return 0;
-        //return 1;
+    public int alphasort(File a, File b)
+    {
         if(a.get_basename() == b.get_basename())
             return 0;
         string[] s1 = extractnumber(a.get_basename());
@@ -112,9 +115,32 @@ public class ItemList{
         return 1;
     }
     
-    public void remove(File infile) {
-	if(infile != null)
-	    files.remove(infile);
+    public void remove(File infile)
+    {
+        if(infile != null)
+            files.remove(infile);
+    }
+
+    public void remove_list(ArrayList<File> infiles)
+    {
+        foreach(File f in infiles)
+            if(f != null)
+                foreach(File of in files)
+                    if(f.get_uri() == of.get_uri())
+                        files.remove(of);
+    }
+
+    public void add(File infile)
+    {
+        if(infile != null)
+            files.add(infile);
+    }
+
+    public void add_list(ArrayList<File> infiles)
+    {
+        foreach(File f in infiles)
+            if(f != null)
+                files.add(f);
     }
 }
 }

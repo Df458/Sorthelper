@@ -21,7 +21,8 @@ public class App : Granite.Application{
     public static bool batch_mode = true;
     public static string last_dest = "";
     
-    construct{
+    construct
+    {
         program_name = "SortHelper";
         exec_name = "sorthelper";
         app_years = "2014";
@@ -36,10 +37,12 @@ public class App : Granite.Application{
         _instance = this;
     }
     
-    protected override void activate(){
+    protected override void activate()
+    {
         if (main_window == null){
             var directory = File.new_for_path ("/home/df458/Downloads/.dl");
             item_list = new ItemList.from_folder(directory);
+            undo_list = new UndoList();
 
             main_window = new MainWindow();
             main_window.build_all();

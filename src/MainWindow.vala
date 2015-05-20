@@ -1,7 +1,9 @@
 using GLib;
 using Gee;
-namespace SortHelper{
-public class MainWindow : Gtk.Window{
+namespace SortHelper
+{
+public class MainWindow : Gtk.Window
+{
     public Gtk.Box container1;
     private Gtk.HeaderBar toolbar;
     private Gtk.SeparatorToolItem separator;
@@ -16,6 +18,8 @@ public class MainWindow : Gtk.Window{
     private Gtk.ToolButton refreshbutton;
     private Gtk.ToolButton addbutton;
     private Gtk.ToolButton openbutton;
+    private Gtk.ToolButton undobutton;
+    private Gtk.ToolButton redobutton;
     private Gtk.Popover open_pop;
     private Gtk.Spinner spinner;
     private GLib.Rand random;
@@ -73,8 +77,14 @@ public class MainWindow : Gtk.Window{
         refreshbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("view-refresh", Gtk.IconSize.SMALL_TOOLBAR), "Refresh");
         addbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("list-add", Gtk.IconSize.SMALL_TOOLBAR), "Add");
         openbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("document-open", Gtk.IconSize.SMALL_TOOLBAR), "Open");
+        undobutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("edit-undo", Gtk.IconSize.SMALL_TOOLBAR), "Undo");
+        redobutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("edit-redo", Gtk.IconSize.SMALL_TOOLBAR), "Redo");
         skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        undobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        undobutton.set_sensitive(false);
+        redobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        redobutton.set_sensitive(false);
         dispimage = new Gtk.Image();
         datimage = new Gtk.Image();
         scrollview = new Gtk.ScrolledWindow(null, null);
@@ -126,6 +136,18 @@ public class MainWindow : Gtk.Window{
             open_pop.show_all();
         });
         addbutton.clicked.connect(()=>{dialog.show_all();});
+        undobutton.clicked.connect(()=>{
+            App.undo_list.undo();
+            if(App.undo_list.previous_count == 0)
+                undobutton.set_sensitive(false);
+            redobutton.set_sensitive(true);
+        });
+        redobutton.clicked.connect(()=>{
+            App.undo_list.redo();
+            if(App.undo_list.next_count == 0)
+                redobutton.set_sensitive(false);
+            undobutton.set_sensitive(true);
+        });
         //errorbar.close.connect(error_cancel);
         errorbar.response.connect(respond);
         search.set_placeholder_text("Filter...");
@@ -155,6 +177,8 @@ public class MainWindow : Gtk.Window{
         toolbar.pack_end(addbutton);
         toolbar.pack_end(refreshbutton);
         toolbar.pack_end(deletebutton);
+        toolbar.pack_end(redobutton);
+        toolbar.pack_end(undobutton);
         Gtk.ToolItem item = new Gtk.ToolItem();
         item.add(spinner);
         toolbar.pack_end (/*App.instance.create_appmenu (settings)*/item);
@@ -218,6 +242,9 @@ public class MainWindow : Gtk.Window{
         }
         if(App.item_list.is_empty()) {
             toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
+            if(App.undo_list.previous_count > 0)
+                undobutton.set_sensitive(true);
+            redobutton.set_sensitive(App.undo_list.next_count > 0);
             set_content(empty_view);
             return;
         }
@@ -225,7 +252,6 @@ public class MainWindow : Gtk.Window{
         spinner.start();
         getFiles.begin((obj, res) => {
             display_files();
-            toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
             spinner.stop();
         });
     }
@@ -235,7 +261,8 @@ public class MainWindow : Gtk.Window{
         App.batch_mode = batchbutton.get_active();
     }
     
-    public void replaceFile() {
+    public void replaceFile()
+    {
         search.grab_focus();
         if(errorbar.get_parent() == container1) {
             container1.remove(errorbar);
@@ -346,6 +373,10 @@ public class MainWindow : Gtk.Window{
     
     public void display_files()
     {
+        toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
+        if(App.undo_list.previous_count > 0)
+            undobutton.set_sensitive(true);
+        redobutton.set_sensitive(App.undo_list.next_count > 0);
         chosen_view.unload();
         if(App.to_display.is_empty)
             set_content(empty_view);
