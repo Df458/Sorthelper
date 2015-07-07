@@ -49,7 +49,12 @@ public class UndoList
         App.item_list.remove_list(to_redo.new_position);
         to_redo = move(to_redo);
         past.add(to_redo);
-        App.main_window.loadFile();
+        if(future.size == 0) {
+            App.main_window.loadFile();
+        } else {
+            App.to_display = future[future.size - 1].new_position;
+            App.main_window.display_files();
+        }
 
         return true;
     }

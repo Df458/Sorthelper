@@ -9,6 +9,8 @@ public class MainWindow : Gtk.Window
     private Gtk.SeparatorToolItem separator;
     private Granite.Widgets.ThinPaned panedview;
     private Granite.Widgets.SourceList places;
+    private BaseItem default_item;
+    private BaseItem user_item;
     private Gtk.Menu settings;
     public Gtk.Image dispimage;
     public Gtk.Image datimage;
@@ -20,6 +22,7 @@ public class MainWindow : Gtk.Window
     private Gtk.ToolButton openbutton;
     private Gtk.ToolButton undobutton;
     private Gtk.ToolButton redobutton;
+    private Gtk.ToolButton errorbutton;
     private Gtk.Popover open_pop;
     private Gtk.Spinner spinner;
     private GLib.Rand random;
@@ -48,6 +51,8 @@ public class MainWindow : Gtk.Window
 
     public bool filtering = false;
     public bool filterreset = false;
+    private Motion failure_list;
+    private bool failed_last = false;
     
     public MainWindow()
     {
@@ -79,12 +84,14 @@ public class MainWindow : Gtk.Window
         openbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("document-open", Gtk.IconSize.SMALL_TOOLBAR), "Open");
         undobutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("edit-undo", Gtk.IconSize.SMALL_TOOLBAR), "Undo");
         redobutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("edit-redo", Gtk.IconSize.SMALL_TOOLBAR), "Redo");
+        errorbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("emblem-important", Gtk.IconSize.SMALL_TOOLBAR), "Check Other");
         skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         undobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         undobutton.set_sensitive(false);
         redobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         redobutton.set_sensitive(false);
+        errorbutton.set_sensitive(false);
         dispimage = new Gtk.Image();
         datimage = new Gtk.Image();
         scrollview = new Gtk.ScrolledWindow(null, null);
@@ -98,6 +105,10 @@ public class MainWindow : Gtk.Window
         chosen_view = empty_view;
 
         places = new Granite.Widgets.SourceList();
+        default_item = new BaseItem("default");
+        user_item = new BaseItem("user");
+        places.root.add(default_item);
+        places.root.add(user_item);
         spinner = new Gtk.Spinner();
         places.set_hexpand(false);
         errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
@@ -107,6 +118,7 @@ public class MainWindow : Gtk.Window
         errorbar.set_message_type(Gtk.MessageType.ERROR);
         Gtk.Container content = errorbar.get_content_area();
         content.add (new Gtk.Label("A file with the same name already exists!"));
+        set_events(Gdk.EventMask.ALL_EVENTS_MASK);
 
         folder_selector = new Gtk.FileChooserButton("Add a Folder", Gtk.FileChooserAction.SELECT_FOLDER);
         folder_button = new Gtk.Button.with_label("Add...");
@@ -122,6 +134,7 @@ public class MainWindow : Gtk.Window
         
         loadDirItems();
         places.set_filter_func(this.itemFilter, true);
+        //places.button_release_event.connect((button) => { if(button.button == 3) places_rclick(); return false;});
         
         //panedview.set_vexpand(true);
         scrollview.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC);
@@ -155,11 +168,13 @@ public class MainWindow : Gtk.Window
             filterreset = (search.get_text_length() == 0);
             filtering = !filterreset;
             places.refilter();
-            if(filterreset)
-                places.root.collapse_all();
-                //stdout.printf("search len: %d\n", search.get_text_length());
-            else
-                places.root.expand_all();
+            if(filterreset) {
+                default_item.collapse_all();
+                user_item.collapse_all();
+            } else {
+                default_item.expand_all();
+                user_item.expand_all();
+            }
             filterreset = false;
         });
         //search.search_changed.connect(() => {libitem.has(search.text);});
@@ -179,6 +194,7 @@ public class MainWindow : Gtk.Window
         toolbar.pack_end(deletebutton);
         toolbar.pack_end(redobutton);
         toolbar.pack_end(undobutton);
+        toolbar.pack_end(errorbutton);
         Gtk.ToolItem item = new Gtk.ToolItem();
         item.add(spinner);
         toolbar.pack_end (/*App.instance.create_appmenu (settings)*/item);
@@ -222,9 +238,9 @@ public class MainWindow : Gtk.Window
     
     public void loadDirItems()
     {
-        places.root.clear();
+        default_item.clear();
         libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
-        places.root.add(libitem);
+        default_item.add(libitem);
         libitem.expand_with_parents();
     }
     
@@ -450,6 +466,35 @@ public class MainWindow : Gtk.Window
             stderr.printf("Error creating directory: %s\n", e.message);
         }
     }
+
+    public void move_failed(Motion err)
+    {
+        container1.pack_end(errorbar, false, false);
+        failed_last = true;
+        failure_list = err;
+        errorbutton.set_sensitive(true);
+        // TODO: Display errors
+        show_all();
+    }
+
+    public void move_failed_single(string dest)
+    {
+        container1.pack_end(errorbar, false, false);
+        failed_last = true;
+        failure_list = new Motion();
+        failure_list.new_position = new ArrayList<File>();
+        failure_list.old_folder = new ArrayList<string>();
+        errorbutton.set_sensitive(true);
+        foreach(File f in App.to_display) {
+            if(f == current_file)
+                failure_list.old_folder.add(dest);
+            else
+                failure_list.old_folder.add("");
+            failure_list.new_position.add(f);
+        }
+        // TODO: Display errors
+        show_all();
+    }
     
     private void on_exit()
     {
@@ -458,13 +503,22 @@ public class MainWindow : Gtk.Window
 
     public bool itemFilter(Granite.Widgets.SourceList.Item item)
     {
-        //return true;
-        return ((DirItem)item).has(search.text);
+        return item is BaseItem || ((DirItem)item).has(search.text);
     }
 
     public void addDir(File f)
     {
-        places.root.add(new DirItem.FromFile(f));
+        user_item.add(new DirItem.FromFile(f));
+    }
+
+    public void places_rclick()
+    {
+        //sidebar_right_click_pop.relative_to = item;
+        //sidebar_right_click_pop.show();
+        //if(places.selected == null)
+            //return;
+        //Gtk.Menu menu = places.selected.get_context_menu();
+        //menu.attach_to_widget(places, null);
     }
 }
 }

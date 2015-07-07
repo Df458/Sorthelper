@@ -3,6 +3,7 @@ using Gdk;
 using GLib;
 using Gee;
 namespace SortHelper{
+
 public class App : Granite.Application{
     
     private static App _instance;
@@ -48,7 +49,6 @@ public class App : Granite.Application{
             main_window.build_all();
             main_window.set_application(this);
             main_window.loadFile();
-            main_window.present();
         }
     }
 }

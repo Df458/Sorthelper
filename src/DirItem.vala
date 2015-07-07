@@ -1,14 +1,18 @@
 using GLib;
 using Gee;
-namespace SortHelper {
-public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
+namespace SortHelper
+{
+public class DirItem : Granite.Widgets.SourceList.ExpandableItem
+{
     public File owned_directory;
     public bool unfiltered_expand;
 
-    public DirItem(){
+    public DirItem()
+    {
     }
     
-    public DirItem.FromFile(File infile){
+    public DirItem.FromFile(File infile)
+    {
         base(infile.get_basename());
         owned_directory = infile;
         ArrayList<File> list = new ArrayList<File>();
@@ -44,23 +48,28 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
         //UIElement.compare = compareItems;
     }
 
-    public void addChild(DirItem child) {
-        //children.add(child);
-        //UIElement.add(child.UIElement);
+    public void addChild(DirItem child)
+    {
     }
     
-    public void activatedCallback(){
+    public void activatedCallback()
+    {
         Motion move = new Motion();
+        Motion failure_list = new Motion();
         move.new_position = new ArrayList<File>();
         move.old_folder = new ArrayList<string>();
+        failure_list.new_position = new ArrayList<File>();
+        failure_list.old_folder = new ArrayList<string>();
         if(App.batch_mode) {
             for(int i = 0; i < App.to_display.size; ++i) {	
                 string name;
                 File f = File.new_for_path (App.to_display[i].get_path());
                 string source = f.get_parent().get_path();
                 name = f.query_info ("standard::*", 0).get_name();
+                File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
+                failure_list.new_position.add(f);
+                failure_list.old_folder.add("");
                 try{
-                    File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
                     f.move(f2, FileCopyFlags.ALL_METADATA);
                     move.new_position.add(f2);
                     move.old_folder.add(source);
@@ -69,12 +78,15 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
                     App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
                     App.main_window.container1.show_all();
                     App.last_dest = owned_directory.get_path();
+                    failure_list.old_folder[failure_list.old_folder.size - 1] = owned_directory.get_path() + "/" + name;
                     continue;
                 }
                 App.item_list.remove(App.to_display[i]);
                 App.to_display.remove_at(i);
                 --i;
             }
+            if(failure_list.new_position.size > 0)
+                App.main_window.move_failed(failure_list);
             if(move.new_position.size > 0)
                 App.undo_list.update(move);
         } else {
@@ -82,8 +94,8 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
             File f = File.new_for_path (App.to_display[sel].get_path());
             string source = f.get_parent().get_path();
             string name = f.query_info ("standard::*", 0).get_name();
+            File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
             try{
-                File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
                 f.move(f2, FileCopyFlags.ALL_METADATA);
                 if(App.main_window.fullview.image_id >= App.to_display.size)
                     App.main_window.fullview.image_id--;
@@ -91,8 +103,7 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
                 move.old_folder.add(owned_directory.get_path());
             } catch (Error e) {
                 stderr.printf ("IO Error: %s\n", e.message);
-                App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
-                App.main_window.container1.show_all();
+                App.main_window.move_failed_single(owned_directory.get_path() + "/" + name);
                 App.last_dest = owned_directory.get_path();
                 return;
             }
@@ -109,7 +120,8 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
         }
     }
 
-    public override int compare(Granite.Widgets.SourceList.Item a, Granite.Widgets.SourceList.Item b){
+    public override int compare(Granite.Widgets.SourceList.Item a, Granite.Widgets.SourceList.Item b)
+    {
         if(a.name > b.name)
         return 1;
         else if(b.name > a.name)
@@ -117,32 +129,59 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem {
         return 0;
     }
 
-    public void displayChildren() {
+    public void displayChildren()
+    {
         visible = true;
         foreach(Granite.Widgets.SourceList.Item child in children)
             ((DirItem)child).displayChildren();
     }
 
-    public bool has(string str) {
+    public bool has(string str)
+    {
         if(name.down().contains(str.down()) || parent.name.down().contains(str.down()))
             return true;
         foreach(Granite.Widgets.SourceList.Item child in children)
             if(((DirItem)child).has(str))
-                return true;
+                return true
+                    ;
         return false;
-        //visible = false;
-        //if(name.contains(str)) {
-            //displayChildren();
-            //return true;
-        //}
+    }
 
-        //foreach(Granite.Widgets.SourceList.Item child in children) {
-            //if(((DirItem)child).has(str)) {
-                //visible = true;
-            //}
-        //}
+    public override Gtk.Menu? get_context_menu()
+    {
+        stderr.printf("STUFF\n");
+        Menu model = new Menu();
+        model.append("Cool Stuff", null);
+        Gtk.Menu menu = new Gtk.Menu.from_model(model);
+        return menu;
+    }
+}
 
-        //return visible;
+public class BaseItem : Granite.Widgets.SourceList.ExpandableItem
+{
+    public BaseItem(string name)
+    {
+        base(name);
+    }
+
+    public override int compare(Granite.Widgets.SourceList.Item a, Granite.Widgets.SourceList.Item b)
+    {
+        if(a.name > b.name)
+        return 1;
+        else if(b.name > a.name)
+        return -1;
+        return 0;
+    }
+
+    public bool has(string str)
+    {
+        if(name.down().contains(str.down()) || parent.name.down().contains(str.down()))
+            return true;
+        foreach(Granite.Widgets.SourceList.Item child in children)
+            if(((DirItem)child).has(str))
+                return true
+                    ;
+        return false;
     }
 }
 }

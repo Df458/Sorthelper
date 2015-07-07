@@ -1,5 +1,7 @@
-namespace SortHelper {
-    public class VideoView : View, Gtk.VBox {
+namespace SortHelper
+{
+    public class VideoView : View, Gtk.VBox
+    {
         Gtk.Toolbar toolbar;
         Gtk.ToolButton play_pause_button;
         Gtk.DrawingArea area;
@@ -8,7 +10,8 @@ namespace SortHelper {
         uint *handle;
         private int video_id = 0;
 
-        public VideoView() {
+        public VideoView()
+        {
             src = Gst.ElementFactory.make("playbin", "player");
 
             area = new Gtk.DrawingArea();
@@ -32,13 +35,15 @@ namespace SortHelper {
             this.pack_end(toolbar, false, false);
         }
 
-        public bool load_video() {
+        public bool load_video()
+        {
             src["uri"] = "file://" + App.to_display[video_id].get_path();
 
             return true;
         }
 
-        public void display() {
+        public void display()
+        {
             src.bus.add_watch(0,(bus,message) => {
                 if(Gst.Video.is_video_overlay_prepare_window_handle_message (message)) {
                     Gst.Video.Overlay overlay = message.src as Gst.Video.Overlay;
@@ -52,17 +57,20 @@ namespace SortHelper {
             src.set_state(Gst.State.READY);
         }
 
-	    public bool load() {
+	    public bool load()
+        {
             video_id = 0;
             load_video();
             return true;
         }	
 
-        public void unload() {
+        public void unload()
+        {
             src.set_state(Gst.State.READY);
         }
 
-        public void fileRemoved() {
+        public void fileRemoved()
+        {
             src.set_state(Gst.State.READY);
             if(video_id >= App.to_display.size) {
                 video_id = App.to_display.size - 1;
