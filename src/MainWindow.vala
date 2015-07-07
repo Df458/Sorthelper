@@ -109,6 +109,8 @@ public class MainWindow : Gtk.Window
         user_item = new BaseItem("user");
         places.root.add(default_item);
         places.root.add(user_item);
+        default_item.expand_all();
+        user_item.expand_all();
         spinner = new Gtk.Spinner();
         places.set_hexpand(false);
         errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
@@ -171,6 +173,8 @@ public class MainWindow : Gtk.Window
             if(filterreset) {
                 default_item.collapse_all();
                 user_item.collapse_all();
+                default_item.expand_with_parents();
+                user_item.expand_with_parents();
             } else {
                 default_item.expand_all();
                 user_item.expand_all();
