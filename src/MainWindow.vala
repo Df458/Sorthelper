@@ -418,6 +418,7 @@ public class MainWindow : Gtk.Window
 
                     case "video/mp4":
                     case "video/webm":
+                    case "video/x-ms-wmv":
                     case "video/x-flv":
                         chosen_view = vidview;
                         break;

@@ -5,6 +5,7 @@ namespace SortHelper
 public class ItemList
 {
     protected ArrayList<File> files;
+    protected HashMap<File, int> indices;
     private GLib.Rand random;
     public File origin_folder;
     public int orig_size = 0;
@@ -16,12 +17,13 @@ public class ItemList
         random = new GLib.Rand();
         try {
             files = new ArrayList<File>();
+            indices = new HashMap<File, int>();
             
             var enumerator = infile.enumerate_children (FileAttribute.STANDARD_NAME, 0);
 
             FileInfo file_info;
             while ((file_info = enumerator.next_file ()) != null) {
-            files.add(enumerator.get_child(file_info));
+                files.add(enumerator.get_child(file_info));
             }
         }catch(GLib.Error e){
             stderr.printf(e.message);
@@ -49,68 +51,101 @@ public class ItemList
         
         output_list.add(to_expand);
         string title = to_expand.get_basename();
-        stdout.printf("Expanding %s...", title);
+        stdout.printf("Expanding %s...\n", title);
         stdout.flush();
-        string[] tnum = extractnumber(title);
-
-        if(tnum.length == 3 && (tnum[0] != "" || !tnum[2].has_prefix("."))) {
-            for(int i = files.index_of(to_expand) + 1; i < files.size; ++i) {
-                File f = files[i];
-                string[] fnum = extractnumber(f.get_basename());
-                if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
-                    stdout.printf("Found " + f.get_basename() + "\n");
-                    output_list.add(f);
-                } else {
-                    stdout.printf("Stop at " + f.get_basename() + "\n");
-                    break;
-                }
-            }
-            for(int i = files.index_of(to_expand) - 1; i >= 0; --i) {
-                File f = files[i];
-                string[] fnum = extractnumber(f.get_basename());
-                if(fnum[0] == tnum[0] && fnum[2] == tnum[2]) {
-                    stdout.printf("Found " + f.get_basename() + "\n");
-                    output_list.add(f);
-                } else {
-                    stdout.printf("Stop at " + f.get_basename() + "\n");
-                    break;
-                }
+        for(int i = files.index_of(to_expand) + 1; i < files.size; ++i) {
+            File f = files[i];
+            int res = in_set(title, f.get_basename(), to_expand);
+            if(res != -1) {
+                output_list.add(f);
+                indices[f] = res;
+                stdout.printf("Found " + f.get_basename() + "(%d)\n", res);
+            } else {
+                stdout.printf("Stop at " + f.get_basename() + "\n");
+                break;
             }
         }
-        output_list.sort(alphasort);
+        for(int i = files.index_of(to_expand) - 1; i >= 0; --i) {
+            File f = files[i];
+            int res = in_set(title, f.get_basename(), to_expand);
+            if(res != -1) {
+                output_list.add(f);
+                indices[f] = res;
+                stdout.printf("Found " + f.get_basename() + " (%d)\n", res);
+            } else {
+                stdout.printf("Stop at " + f.get_basename() + "\n");
+                break;
+            }
+        }
+        output_list.sort(indexsort);
+        indices.clear();
+        stdout.flush();
 
         return output_list;
     }
 
-    private string[] extractnumber(string input)
+    private int in_set(string file, string candidate, File orig)
     {
-        for(int i = input.length - 1; i >= 0; --i) {
-            if(input[i] >= '0' && input[i] <= '9') {
-                int j;
-                for(j = i; j >= 0 && input[j] >= '0' && input[j] <= '9'; --j);
-                    return {input.slice(0, j + 1), input.slice(j + 1, i + 1), input.slice(i + 1, input.length)};
+        bool difference_found = false;
+        int ival = 0;
+        int val = 0;
+
+        int i = 0;
+        int j = 0;
+        while(i < file.length && j < candidate.length) {
+            if(file[i] != candidate[j]) {
+                if(difference_found || ((file[i] > '9' || file[i] < '0') && (candidate[j] > '9' || candidate[j] < '0')))
+                    return -1;
+                else {
+                    difference_found = true;
+                    while(i < file.length && file[i] <= '9' && file[i] >= '0') {
+                        ival = ival * 10 + (file[i] - '0');
+                        ++i;
+                    }
+                    while(j < candidate.length && candidate[j] <= '9' && candidate[j] >= '0') {
+                        val = val * 10 + (candidate[j] - '0');
+                        ++j;
+                    }
+                    continue;
+                }
             }
+            if(!difference_found) {
+                if(candidate[i] <= '9' && candidate[i] >= '0')
+                    ival = ival * 10 + (candidate[i] - '0');
+                else
+                    ival = 0;
+
+                if(candidate[j] <= '9' && candidate[j] >= '0')
+                    val = val * 10 + (candidate[j] - '0');
+                else
+                    val = 0;
+            }
+            ++i;
+            ++j;
         }
-        return {input};
+
+        if(i != file.length || j != candidate.length)
+            return -1;
+
+        indices[orig] = ival;
+
+        return val;
     }
     
     public int alphasort(File a, File b)
     {
         if(a.get_basename() == b.get_basename())
             return 0;
-        string[] s1 = extractnumber(a.get_basename());
-        string[] s2 = extractnumber(b.get_basename());
-        if(s1[0] == s2[0]) {
-            int i1 = int.parse(s1[1]);
-            int i2 = int.parse(s2[1]);
-            if(i1 == i2) {
-                if(s1[2] < s2[2])
-                    return -1;
-                return 1;
-            } else if(i1 < i2)
-                return -1;
-            return 1;
-        } else if(s1[0] < s2[0])
+        if(a.get_basename() < b.get_basename())
+            return -1;
+        return 1;
+    }
+    
+    public int indexsort(File a, File b)
+    {
+        if(indices[a] == indices[b])
+            return 0;
+        if(indices[a] < indices[b])
             return -1;
         return 1;
     }

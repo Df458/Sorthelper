@@ -7,6 +7,7 @@ namespace SortHelper
         Gtk.DrawingArea area;
         Gst.Element src;
         Gst.Element sink;
+        bool prepared = false;
         uint *handle;
         private int video_id = 0;
 
@@ -37,6 +38,7 @@ namespace SortHelper
 
         public bool load_video()
         {
+            src = Gst.ElementFactory.make("playbin", "player");
             src["uri"] = "file://" + App.to_display[video_id].get_path();
 
             return true;
@@ -50,11 +52,12 @@ namespace SortHelper
                     assert (overlay != null);
 
                     overlay.set_window_handle (handle);
+                    prepared = true;
                 }
                 return true;
             });
         
-            src.set_state(Gst.State.READY);
+            src.set_state(Gst.State.PLAYING);
         }
 
 	    public bool load()
@@ -66,7 +69,7 @@ namespace SortHelper
 
         public void unload()
         {
-            src.set_state(Gst.State.READY);
+            src.set_state(Gst.State.NULL);
         }
 
         public void fileRemoved()
