@@ -36,14 +36,6 @@ namespace SortHelper
             this.pack_end(toolbar, false, false);
         }
 
-        public bool load_video()
-        {
-            src = Gst.ElementFactory.make("playbin", "player");
-            src["uri"] = "file://" + App.to_display[video_id].get_path();
-
-            return true;
-        }
-
         public void display()
         {
             src.bus.add_watch(0,(bus,message) => {
@@ -60,10 +52,11 @@ namespace SortHelper
             src.set_state(Gst.State.PLAYING);
         }
 
-	    public bool load()
+	    public bool load(File infile)
         {
             video_id = 0;
-            load_video();
+            src = Gst.ElementFactory.make("playbin", "player");
+            src["uri"] = "file://" + infile.get_path();
             return true;
         }	
 
@@ -74,11 +67,11 @@ namespace SortHelper
 
         public void fileRemoved()
         {
-            src.set_state(Gst.State.READY);
-            if(video_id >= App.to_display.size) {
-                video_id = App.to_display.size - 1;
-            }
-            load_video();
+            //src.set_state(Gst.State.READY);
+            //if(video_id >= App.to_display.size) {
+                //video_id = App.to_display.size - 1;
+            //}
+            //load_video();
         }
     }
 }

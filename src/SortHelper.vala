@@ -2,12 +2,14 @@ using Gtk;
 using Gdk;
 using GLib;
 using Gee;
-namespace SortHelper{
-
-public class App : Granite.Application{
+namespace SortHelper
+{
+public class App : Granite.Application
+{
     
     private static App _instance;
-    public static App instance {
+    public static App instance
+    {
 	get {
 	    if (_instance == null)
 		_instance = new App ();
@@ -46,8 +48,8 @@ public class App : Granite.Application{
             undo_list = new UndoList();
 
             main_window = new MainWindow();
-            main_window.build_all();
             main_window.set_application(this);
+            main_window.loadDirItems();
             main_window.loadFile();
         }
     }

@@ -1,5 +1,8 @@
-namespace SortHelper {
-    public class AudioView : View, Gtk.VBox {
+namespace SortHelper
+{
+    // TODO: VBox is deprecated
+    public class AudioView : View, Gtk.VBox
+    {
         Granite.Widgets.Welcome area;
         Gtk.Toolbar toolbar;
         Gtk.ToolButton play_pause_button;
@@ -7,7 +10,8 @@ namespace SortHelper {
         Gst.Element sink;
         private int audio_id = 0;
 
-        public AudioView() {
+        public AudioView()
+        {
             src = Gst.ElementFactory.make("playbin2", "player");
             sink = Gst.ElementFactory.make("fakesink", "sf");
             src["video-sink"] = sink;
@@ -29,33 +33,31 @@ namespace SortHelper {
             this.pack_end(toolbar, false, false);
         }
 
-        public bool load_audio() {
-            src["uri"] = "file://" + App.to_display[audio_id].get_path();
-            area.title = App.to_display[audio_id].get_basename();
-            src.set_state(Gst.State.READY);
-
-            return true;
-        }
-
-        public void display() {
+        public void display()
+        {
             src.set_state(Gst.State.READY);
         }
 
-	    public bool load() {
+	    public bool load(File infile)
+        {
             audio_id = 0;
-            load_audio();
+            src["uri"] = "file://" + infile.get_path();
+            area.title = infile.get_basename();
+            src.set_state(Gst.State.READY);
             return true;
         }	
 
-        public void unload() {
+        public void unload()
+        {
             src.set_state(Gst.State.READY);
         }
 
-        public void fileRemoved() {
-            if(audio_id >= App.to_display.size) {
-                audio_id = App.to_display.size - 1;
-            }
-            load_audio();
+        public void fileRemoved()
+        {
+            //if(audio_id >= App.to_display.size) {
+                //audio_id = App.to_display.size - 1;
+            //}
+            //load_audio();
         }
     }
 }

@@ -1,52 +1,46 @@
 using GLib;
 using Gee;
-namespace SortHelper{
-    public class ImageFullView : View, Gtk.VBox{
-        private Gtk.Toolbar toolbar;
+namespace SortHelper
+{
+    public class ImageFullView : View, Gtk.VBox
+    {
+        //private Gtk.Toolbar toolbar;
         private Gtk.ScrolledWindow scroll_view;
         public int image_id = 0;
         private Gtk.Image dispimage;
         private Gtk.Image datimage;
-        private Gtk.ToolButton next_button;
-        private Gtk.ToolButton back_button;
-        private Gtk.SeparatorToolItem separator;
-        private Gtk.Label count_label;
-        private Gtk.SeparatorToolItem separator_r;
+        //private Gtk.ToolButton next_button;
+        //private Gtk.ToolButton back_button;
+        //private Gtk.SeparatorToolItem separator;
 
-        public ImageFullView() {
+        public ImageFullView()
+        {
             this.set_homogeneous(false);
             scroll_view = new Gtk.ScrolledWindow(null, null);
             dispimage = new Gtk.Image();
             scroll_view.add_with_viewport(dispimage);
-            separator = new Gtk.SeparatorToolItem();
-            separator.set_expand(true);
-            separator_r = new Gtk.SeparatorToolItem();
-            separator_r.set_expand(true);
-            next_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-next", Gtk.IconSize.SMALL_TOOLBAR), "Next");
-            next_button.clicked.connect(() => {
-                if(image_id < App.to_display.size - 1) {
-                    image_id++;
-                    loadImage();
-                }
-            });
-            back_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-previous", Gtk.IconSize.SMALL_TOOLBAR), "Previous");
-            back_button.clicked.connect(() => {
-                if(image_id > 0) {
-                    image_id--;
-                    loadImage();
-                }
-            });
-            toolbar = new Gtk.Toolbar();
-            toolbar.insert(back_button, 0);
-            toolbar.insert(separator, 1);
-            Gtk.ToolItem item = new Gtk.ToolItem();
-            count_label = new Gtk.Label("Image");
-            item.add(count_label);
-            toolbar.insert(item, 2);
-            toolbar.insert(separator_r, 3);
-            toolbar.insert(next_button, 4);
+            //separator = new Gtk.SeparatorToolItem();
+            //separator.set_expand(true);
+            //next_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-next", Gtk.IconSize.SMALL_TOOLBAR), "Next");
+            //next_button.clicked.connect(() => {
+                //if(image_id < App.to_display.size - 1) {
+                    //image_id++;
+                    //loadImage();
+                //}
+            //});
+            //back_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-previous", Gtk.IconSize.SMALL_TOOLBAR), "Previous");
+            //back_button.clicked.connect(() => {
+                //if(image_id > 0) {
+                    //image_id--;
+                    //loadImage();
+                //}
+            //});
+            //toolbar = new Gtk.Toolbar();
+            //toolbar.insert(back_button, 0);
+            //toolbar.insert(separator, 1);
+            //toolbar.insert(next_button, 2);
             this.pack_start(scroll_view, true, true, 0);
-            this.pack_start(toolbar, false, false, 1);
+            //this.pack_start(toolbar, false, false, 1);
         }
 
         //public void resetPage() {
@@ -54,7 +48,8 @@ namespace SortHelper{
             //loadImage();
         //}
 
-        public void resize() {
+        public void resize()
+        {
             if(datimage.get_pixbuf() != null) {
                 dispimage.set_from_pixbuf(resizeImage(datimage).get_pixbuf());
             } else if(datimage.get_animation() != null) {
@@ -62,37 +57,44 @@ namespace SortHelper{
             }
         }
 
-        public void loadImage() {
-            datimage = getImage();
-            resize();
-            next_button.set_sensitive(image_id < App.to_display.size - 1);
-            back_button.set_sensitive(image_id > 0);
-            count_label.label = App.to_display[image_id].get_basename();
-            if(App.to_display.size > 1) {
-                count_label.label += " (" + (image_id+1).to_string() + "/" + App.to_display.size.to_string() + ")";
-            }
-        }
-
-        public bool load() {
+        public bool load(File infile)
+        {
             image_id = 0;
-            loadImage();
+            datimage = new Gtk.Image();
+            try{
+                Gdk.PixbufAnimation buf = new Gdk.PixbufAnimation.from_file(infile.get_path());
+                if(buf == null)
+                    stderr.printf("ERROR: Animation is null!\n");
+                if(buf.is_static_image())
+                    datimage.set_from_pixbuf(buf.get_static_image());
+                else {
+                    datimage.set_from_animation(buf);
+                }
+            }catch(GLib.Error e){
+                stderr.printf("Failed to load image: %s\n", e.message);
+            }
+            resize();
             return true;
         }
 
-        public void display() {
+        public void display()
+        {
             resize();
         }
 
         public void unload() {}
 
-        public void fileRemoved() {
-            if(image_id >= App.to_display.size) {
-                image_id = App.to_display.size - 1;
-            }
-            loadImage();
+        // TODO: Remove this, replace in mainwindow
+        public void fileRemoved()
+        {
+            //if(image_id >= App.to_display.size) {
+                //image_id = App.to_display.size - 1;
+            //}
+            //loadImage();
         }
 
-        public Gtk.Image resizeImage(Gtk.Image imagedat){
+        public Gtk.Image resizeImage(Gtk.Image imagedat)
+        {
             Gtk.Image image = new Gtk.Image();
             int oldwidth = imagedat.get_pixbuf().get_width();
             int oldheight = imagedat.get_pixbuf().get_height();
@@ -115,24 +117,6 @@ namespace SortHelper{
             if(width <= 0 || height <= 0)
                 return imagedat;
             image.set_from_pixbuf(imagedat.get_pixbuf().scale_simple(width, height, Gdk.InterpType.BILINEAR));
-            return image;
-        }
-
-        public Gtk.Image getImage(){
-            Gtk.Image image = new Gtk.Image();
-            try{
-                Gdk.PixbufAnimation buf = new Gdk.PixbufAnimation.from_file(App.to_display[image_id].get_path());
-                if(buf == null)
-                    stderr.printf("ERROR: Animation is null!\n");
-                if(buf.is_static_image())
-                    image.set_from_pixbuf(buf.get_static_image());
-                else {
-                    stdout.printf("Got animation\n");
-                    image.set_from_animation(buf);
-                }
-            }catch(GLib.Error e){
-                stderr.printf("Failed to load image: %s\n", e.message);
-            }
             return image;
         }
     }

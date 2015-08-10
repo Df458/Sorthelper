@@ -2,7 +2,7 @@ using GLib;
 using Gee;
 namespace SortHelper{
 	public class ImageSetView : View, Gtk.Viewport{
-        public bool load() { return true; }
+        public bool load(File infile) { return true; }
 
         public void display() {}
 
