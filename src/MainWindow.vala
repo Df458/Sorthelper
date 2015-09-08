@@ -236,7 +236,7 @@ public class MainWindow : Gtk.Window
     public void go_next()
     {
         ++selected;
-        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + selected.to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
+        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
         current_view.load(App.to_display[selected]);
         current_view.display();
         if(backbutton.parent == null)
@@ -249,7 +249,7 @@ public class MainWindow : Gtk.Window
     public void go_prev()
     {
         --selected;
-        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + selected.to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
+        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
         current_view.load(App.to_display[selected]);
         current_view.display();
         if(nextbutton.parent == null)
@@ -433,7 +433,7 @@ public class MainWindow : Gtk.Window
     {
         if(selected >= App.to_display.size)
             selected = App.to_display.size - 1;
-        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + selected.to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
+        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
         current_view.load(App.to_display[selected]);
         current_view.display();
         if(selected >= App.to_display.size - 1 && nextbutton.parent != null)
