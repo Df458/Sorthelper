@@ -33,7 +33,7 @@ public class MainWindow : Gtk.Window
     public Gtk.InfoBar errorbar;
     private Gtk.ActionBar status_bar;
     private Gtk.Label file_label;
-    private int selected = 0;
+    public int selected = 0;
 
     public ImageFullView fullview;
     public VideoView vidview;

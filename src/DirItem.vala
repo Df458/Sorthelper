@@ -91,14 +91,14 @@ public class DirItem : Granite.Widgets.SourceList.ExpandableItem, Granite.Widget
                 App.undo_list.update(move);
         } else {
             try{
-                int sel = App.main_window.fullview.image_id;
+                int sel = App.main_window.selected;
                 File f = File.new_for_path (App.to_display[sel].get_path());
                 string source = f.get_parent().get_path();
                 string name = f.query_info ("standard::*", 0).get_name();
                 File f2 = File.new_for_path(owned_directory.get_path() + "/" + name);
                 f.move(f2, FileCopyFlags.ALL_METADATA);
-                if(App.main_window.fullview.image_id >= App.to_display.size)
-                    App.main_window.fullview.image_id--;
+                if(App.main_window.selected >= App.to_display.size)
+                    App.main_window.selected--;
                 move.new_position.add(f2);
                 move.old_folder.add(owned_directory.get_path());
                 move.new_position.add(f);
