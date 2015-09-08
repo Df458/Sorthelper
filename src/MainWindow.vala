@@ -130,6 +130,8 @@ public class MainWindow : Gtk.Window
         open_pop.file_chosen.connect(addDir);
         target_pop.file_chosen.connect((file) => {
             App.item_list.load_folder(file);
+            undobutton.set_sensitive(false);
+            redobutton.set_sensitive(false);
             loadFile();
         });
         undobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
@@ -481,7 +483,7 @@ public class MainWindow : Gtk.Window
     {
         container1.pack_end(errorbar, false, false);
         failed_last = true;
-        failure_list = new Motion();
+        failure_list = Motion();
         failure_list.new_position = new ArrayList<File>();
         failure_list.old_folder = new ArrayList<string>();
         errorbutton.set_sensitive(true);

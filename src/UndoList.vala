@@ -23,6 +23,12 @@ public class UndoList
         future = new ArrayList<Motion?>();
     }
 
+    public void clear()
+    {
+        past.clear();
+        future.clear();
+    }
+
     public bool undo()
     {
         if(past.size == 0)
@@ -61,21 +67,23 @@ public class UndoList
 
     public void update(Motion moved)
     {
-        int prev = past.size;
         past.add(moved);
-        int next = past.size;
         future.clear();
     }
 
     private Motion move(Motion to_move)
     {
         for(int i = 0; i < to_move.new_position.size; ++i) {
-            string source = to_move.new_position[i].get_parent().get_path();
-            string name = to_move.new_position[i].query_info ("standard::*", 0).get_name();
-            File dest = File.new_for_path(to_move.old_folder[i] + "/" + name);
-            to_move.new_position[i].move(dest, FileCopyFlags.OVERWRITE);
-            to_move.new_position[i] = dest;
-            to_move.old_folder[i] = source;
+            try{
+                string source = to_move.new_position[i].get_parent().get_path();
+                string name = to_move.new_position[i].query_info ("standard::*", 0).get_name();
+                File dest = File.new_for_path(to_move.old_folder[i] + "/" + name);
+                to_move.new_position[i].move(dest, FileCopyFlags.OVERWRITE);
+                to_move.new_position[i] = dest;
+                to_move.old_folder[i] = source;
+            }catch(Error e){
+                stderr.printf("IO Error: %s\n", e.message);
+            }
         }
 
         return to_move;

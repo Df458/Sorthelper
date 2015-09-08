@@ -18,7 +18,5 @@ namespace SortHelper
         public void display() {}
 
         public void unload() {}
-
-        public void fileRemoved() {}
 	}
 }

@@ -1,18 +1,18 @@
 namespace SortHelper
 {
-    public class VideoView : View, Gtk.VBox
+    public class VideoView : View, Gtk.Box
     {
         Gtk.Toolbar toolbar;
         Gtk.ToolButton play_pause_button;
         Gtk.DrawingArea area;
         Gst.Element src;
-        Gst.Element sink;
         bool prepared = false;
         uint *handle;
         private int video_id = 0;
 
         public VideoView()
         {
+            this.orientation = Gtk.Orientation.VERTICAL;
             src = Gst.ElementFactory.make("playbin", "player");
 
             area = new Gtk.DrawingArea();
@@ -63,15 +63,6 @@ namespace SortHelper
         public void unload()
         {
             src.set_state(Gst.State.NULL);
-        }
-
-        public void fileRemoved()
-        {
-            //src.set_state(Gst.State.READY);
-            //if(video_id >= App.to_display.size) {
-                //video_id = App.to_display.size - 1;
-            //}
-            //load_video();
         }
     }
 }

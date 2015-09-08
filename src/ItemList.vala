@@ -50,6 +50,7 @@ public class ItemList
         }
         files.sort(alphasort);
         orig_size = files.size;
+        App.undo_list.clear();
     }
     
     public bool is_empty()
@@ -144,7 +145,7 @@ public class ItemList
             ++j;
         }
 
-        if(i != file.length || j != candidate.length)
+        if(i != file.length || j != candidate.length || val >= 10000 || ival >= 10000)
             return -1;
 
         indices[orig] = ival;

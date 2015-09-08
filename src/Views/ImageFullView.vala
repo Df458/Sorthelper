@@ -2,51 +2,23 @@ using GLib;
 using Gee;
 namespace SortHelper
 {
-    public class ImageFullView : View, Gtk.VBox
+    public class ImageFullView : View, Gtk.Box
     {
-        //private Gtk.Toolbar toolbar;
         private Gtk.ScrolledWindow scroll_view;
         public int image_id = 0;
         private Gtk.Image dispimage;
         private Gtk.Image datimage;
-        //private Gtk.ToolButton next_button;
-        //private Gtk.ToolButton back_button;
-        //private Gtk.SeparatorToolItem separator;
 
         public ImageFullView()
         {
+            this.orientation = Gtk.Orientation.VERTICAL;
             this.set_homogeneous(false);
             scroll_view = new Gtk.ScrolledWindow(null, null);
             dispimage = new Gtk.Image();
             scroll_view.add_with_viewport(dispimage);
-            //separator = new Gtk.SeparatorToolItem();
-            //separator.set_expand(true);
-            //next_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-next", Gtk.IconSize.SMALL_TOOLBAR), "Next");
-            //next_button.clicked.connect(() => {
-                //if(image_id < App.to_display.size - 1) {
-                    //image_id++;
-                    //loadImage();
-                //}
-            //});
-            //back_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-previous", Gtk.IconSize.SMALL_TOOLBAR), "Previous");
-            //back_button.clicked.connect(() => {
-                //if(image_id > 0) {
-                    //image_id--;
-                    //loadImage();
-                //}
-            //});
-            //toolbar = new Gtk.Toolbar();
-            //toolbar.insert(back_button, 0);
-            //toolbar.insert(separator, 1);
-            //toolbar.insert(next_button, 2);
-            this.pack_start(scroll_view, true, true, 0);
-            //this.pack_start(toolbar, false, false, 1);
-        }
 
-        //public void resetPage() {
-            //image_id = 0;
-            //loadImage();
-        //}
+            this.pack_start(scroll_view, true, true, 0);
+        }
 
         public void resize()
         {
@@ -83,15 +55,6 @@ namespace SortHelper
         }
 
         public void unload() {}
-
-        // TODO: Remove this, replace in mainwindow
-        public void fileRemoved()
-        {
-            //if(image_id >= App.to_display.size) {
-                //image_id = App.to_display.size - 1;
-            //}
-            //loadImage();
-        }
 
         public Gtk.Image resizeImage(Gtk.Image imagedat)
         {

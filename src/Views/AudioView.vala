@@ -1,7 +1,7 @@
 namespace SortHelper
 {
     // TODO: VBox is deprecated
-    public class AudioView : View, Gtk.VBox
+    public class AudioView : View, Gtk.Box
     {
         Granite.Widgets.Welcome area;
         Gtk.Toolbar toolbar;
@@ -12,6 +12,7 @@ namespace SortHelper
 
         public AudioView()
         {
+            this.orientation = Gtk.Orientation.VERTICAL;
             src = Gst.ElementFactory.make("playbin2", "player");
             sink = Gst.ElementFactory.make("fakesink", "sf");
             src["video-sink"] = sink;
@@ -50,14 +51,6 @@ namespace SortHelper
         public void unload()
         {
             src.set_state(Gst.State.READY);
-        }
-
-        public void fileRemoved()
-        {
-            //if(audio_id >= App.to_display.size) {
-                //audio_id = App.to_display.size - 1;
-            //}
-            //load_audio();
         }
     }
 }
