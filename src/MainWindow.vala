@@ -59,6 +59,12 @@ public class MainWindow : Gtk.Window
 
     private Gtk.ButtonBox control_box;
     private Gtk.Revealer control_revealer;
+
+    // Tree Shit
+    private Gtk.TreeView places_view;
+    private Gtk.TreeStore places_data;
+    private Gtk.TreeModelFilter places_filter;
+    private string filter_key;
  
     public MainWindow()
     {
@@ -92,10 +98,67 @@ public class MainWindow : Gtk.Window
         view_overlay = new Gtk.Overlay();
         control_box = new Gtk.ButtonBox(Gtk.Orientation.HORIZONTAL);
         control_revealer = new Gtk.Revealer();
+        Gtk.ScrolledWindow places_wrapper = new Gtk.ScrolledWindow(null, null);
+
+        places_data = new Gtk.TreeStore(4, typeof(string), typeof(string), typeof(bool), typeof(bool));
+        places_data.set_sort_column_id(0, Gtk.SortType.ASCENDING);
+        places_filter = new Gtk.TreeModelFilter(places_data, null);
+        places_filter.set_visible_column(2);
+        //places_filter.set_visible_func((model, iter) => {
+            //if(filter_key == null)
+                //return true;
+            //string name;
+            //model.get(iter, 0, out name);
+            //return name.down().contains(filter_key);
+        //});
+        places_view = new Gtk.TreeView.with_model(places_filter);
+        //places_view.enable_search = true;
+        //places_view.search_column = 0;
+        places_view.set_headers_visible(false);
+        Gtk.TreeViewColumn col_name = new Gtk.TreeViewColumn.with_attributes("Name", new Gtk.CellRendererText(), "text", 0, null);
+        places_view.insert_column(col_name, -1);
+        places_view.cursor_changed.connect(() => {
+            if(search.text == "") {
+                Gtk.TreePath path;
+                places_view.get_cursor(out path, null);
+                if(places_view.is_row_expanded(path))
+                    places_view.collapse_row(path);
+                else
+                    places_view.expand_row(path, false);
+                Gtk.TreeIter iter;
+                places_data.get_iter(out iter, path);
+                places_data.set(iter, 3, places_view.is_row_expanded(path));
+            }
+        });
+        places_view.row_expanded.connect((iter, path) => {
+            if(search.text == "")
+                places_data.set(iter, 3, true);
+        });
+        places_view.row_collapsed.connect((iter, path) => {
+            if(search.text == "")
+                places_data.set(iter, 3, false);
+        });
+        places_view.row_activated.connect((path, column) => {
+            Gtk.TreeIter iter;
+            places_data.get_iter(out iter, path);
+            string move_path = "";
+            places_data.get(iter, 1, &move_path);
+
+            if(App.batch_mode)
+                App.move_files(move_path, list);
+            else
+                App.move_file(move_path, list[selected]);
+        });
+        //places_view.set_search_equal_func((model, col, key, iter) =>{
+            //string name;
+            //model.get(iter, col, out name);
+            //return name.down().contains(key.down()) == false;
+        //});
 
         toolbar.set_title("Sorthelper");
         toolbar.set_subtitle("Completion: ");
         toolbar.set_show_close_button(true);
+        toolbar.set_decoration_layout("menu:close");
         errorbar.set_show_close_button(true);
         errorbar.set_response_sensitive(1, true);
         errorbar.set_response_sensitive(2, true);
@@ -166,7 +229,10 @@ public class MainWindow : Gtk.Window
         addbutton.clicked.connect(() => {add_pop.show_all();});
         openbutton.clicked.connect(() => {open_pop.show_all();});
         add_pop.file_created.connect(build_directory);
-        open_pop.file_chosen.connect(addDir);
+        open_pop.file_chosen.connect((name) => {
+            //addDir(new File.new_for_path(name));
+            // TODO: Reimplement this
+        });
         target_pop.file_chosen.connect((file) => {
             App.item_list.load_folder(file);
             undobutton.set_sensitive(false);
@@ -207,19 +273,22 @@ public class MainWindow : Gtk.Window
 
         search.set_placeholder_text("Filter...");
         search.search_changed.connect(() => {
-            filterreset = (search.get_text_length() == 0);
-            filtering = !filterreset;
-            places.refilter();
-            if(filterreset) {
-                default_item.collapse_all();
-                user_item.collapse_all();
-                default_item.expand_with_parents();
-                user_item.expand_with_parents();
-            } else {
-                default_item.expand_all();
-                user_item.expand_all();
-            }
-            filterreset = false;
+            //filterreset = (search.get_text_length() == 0);
+            //filtering = !filterreset;
+            //places.refilter();
+                //filter_key = search.text.down();
+                //places_filter.refilter();
+            traversal_filter.begin(search.text);
+            //if(filterreset) {
+                //default_item.collapse_all();
+                //user_item.collapse_all();
+                //default_item.expand_with_parents();
+                //user_item.expand_with_parents();
+            //} else {
+                //default_item.expand_all();
+                //user_item.expand_all();
+            //}
+            //filterreset = false;
         });
 
         default_item.expand_all();
@@ -248,7 +317,8 @@ public class MainWindow : Gtk.Window
         places.root.add(user_item);
 
         list_box.pack_start(search, false, false);
-        list_box.pack_start(places, true, true);
+        places_wrapper.add(places_view);
+        list_box.pack_start(places_wrapper, true, true);
         status_bar.set_center_widget(file_label);
         status_bar.pack_start(addbutton);
         status_bar.pack_start(openbutton);
@@ -276,10 +346,11 @@ public class MainWindow : Gtk.Window
     
     public void loadDirItems()
     {
-        default_item.clear();
-        libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
-        default_item.add(libitem);
-        libitem.expand_with_parents();
+        //default_item.clear();
+        //libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
+        //default_item.add(libitem);
+        //libitem.expand_with_parents();
+        addDir(File.new_for_path("/home/df458/Documents/.Collections/.lib"), null);
     }
     
     public void resizeView()
@@ -563,9 +634,27 @@ public class MainWindow : Gtk.Window
         return item is BaseItem || ((DirItem)item).has(search.text);
     }
 
-    public void addDir(File f)
+    public void addDir(File f, Gtk.TreeIter? parent_iter)
     {
-        user_item.add(new DirItem.FromFile(f));
+        Gtk.TreeIter iter;
+        places_data.append(out iter, parent_iter);
+
+        places_data.set(iter, 0, f.get_basename(), 1, f.get_uri(), 2, true);
+        FileInfo info;
+        try{
+            info = f.query_info ("standard::*", 0);
+            FileEnumerator enumerator = f.enumerate_children (FileAttribute.STANDARD_NAME, 0);
+
+            FileInfo file_info;
+            while ((file_info = enumerator.next_file ()) != null) {
+                if(file_info.get_file_type () == FileType.DIRECTORY){
+                    addDir(f.resolve_relative_path (file_info.get_name ()), iter);
+                }
+            }
+        } catch (Error e) {
+            stderr.printf ("Error: %s\n", e.message);
+            return;
+        }
     }
 
     public void places_rclick()
@@ -576,6 +665,46 @@ public class MainWindow : Gtk.Window
             //return;
         //Gtk.Menu menu = places.selected.get_context_menu();
         //menu.attach_to_widget(places, null);
+    }
+
+    public async void traversal_filter(string key)
+    {
+        Gtk.TreeIter iter;
+        places_data.get_iter_first(out iter);
+        if(key.length == 0)
+            places_view.collapse_all();
+        yield traversal_step(iter, key.down());
+        places_filter.refilter();
+        if(key.length != 0)
+            places_view.expand_all();
+    }
+
+    public async bool traversal_step(Gtk.TreeIter iter, string key, bool carry = false)
+    {
+        bool back = false;
+        bool temp = false;
+        do {
+            Gtk.TreeIter child;
+            ushort val = 0;
+            bool expanded = false;
+            string name = "";
+            places_data.get(iter, 0, out name, 3, out expanded);
+            if(key.length == 0 || name.down().contains(key)) {
+                val = 2;
+                if(key.length == 0 && expanded)
+                    places_view.expand_row(places_data.get_path(iter), false);
+            }
+            else if(carry)
+                val = 1;
+            bool keep = val != 0;
+            if(places_data.iter_children(out child, iter)) {
+                temp = yield traversal_step(child, key, val == 2);
+                keep = temp || keep;
+            }
+            places_data.set(iter, 2, keep);
+            back = back || keep;
+        } while(places_data.iter_next(ref iter));
+        return back;
     }
 }
 }

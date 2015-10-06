@@ -42,7 +42,7 @@ public class App : Granite.Application
     
     protected override void activate()
     {
-        if (main_window == null){
+        if (main_window == null) {
             var directory = File.new_for_path ("/home/df458/Downloads/.dl");
             item_list = new ItemList.from_folder(directory);
             undo_list = new UndoList();
@@ -52,6 +52,20 @@ public class App : Granite.Application
             main_window.loadDirItems();
             main_window.loadFile();
         }
+    }
+
+    // Returned if succeeded
+    public static bool move_file(string location, string file)
+    {
+        stderr.printf("Not implemented");
+        return false;
+    }
+
+    // Returns a list of failures
+    public static ArrayList<File> move_files(string location, ArrayList<string> files)
+    {
+        stderr.printf("Not implemented");
+        return new ArrayList<File>();
     }
 }
 }
