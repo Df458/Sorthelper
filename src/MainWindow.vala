@@ -6,10 +6,7 @@ public class MainWindow : Gtk.Window
 {
     public Gtk.Box container1;
     private Gtk.HeaderBar toolbar;
-    private Granite.Widgets.ThinPaned panedview;
-    private Granite.Widgets.SourceList places;
-    private BaseItem default_item;
-    private BaseItem user_item;
+    private Gtk.Paned panedview;
     private Gtk.ToolButton skipbutton;
     private Gtk.ToolButton deletebutton;
     private Gtk.ToggleToolButton batchbutton;
@@ -27,7 +24,6 @@ public class MainWindow : Gtk.Window
     private OpenFolderPopover target_pop;
     private GLib.Rand random;
     public ArrayList<string> list;
-    private DirItem libitem;
     public string current_image_location;
     public File current_file;
     public Gtk.InfoBar errorbar;
@@ -88,13 +84,12 @@ public class MainWindow : Gtk.Window
         // Init Structural Widgets
         toolbar = new Gtk.HeaderBar();
         status_bar = new Gtk.ActionBar();
-        panedview = new Granite.Widgets.ThinPaned();
+        panedview = new Gtk.Paned(Gtk.Orientation.HORIZONTAL);
         list_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 5);
         // TODO: Consider making errorbar a class as well
         errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
         Gtk.Container content = errorbar.get_content_area();
         container1 = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        places = new Granite.Widgets.SourceList();
         view_overlay = new Gtk.Overlay();
         control_box = new Gtk.ButtonBox(Gtk.Orientation.HORIZONTAL);
         control_revealer = new Gtk.Revealer();
@@ -115,29 +110,35 @@ public class MainWindow : Gtk.Window
         //places_view.enable_search = true;
         //places_view.search_column = 0;
         places_view.set_headers_visible(false);
-        Gtk.TreeViewColumn col_name = new Gtk.TreeViewColumn.with_attributes("Name", new Gtk.CellRendererText(), "text", 0, null);
-        places_view.insert_column(col_name, -1);
-        places_view.cursor_changed.connect(() => {
-            if(search.text == "") {
-                Gtk.TreePath path;
-                places_view.get_cursor(out path, null);
-                if(places_view.is_row_expanded(path))
-                    places_view.collapse_row(path);
-                else
-                    places_view.expand_row(path, false);
-                Gtk.TreeIter iter;
-                places_data.get_iter(out iter, path);
-                places_data.set(iter, 3, places_view.is_row_expanded(path));
+        Gtk.CellRendererText name_renderer = new Gtk.CellRendererText();
+        name_renderer.editable = true;
+        name_renderer.edited.connect((path, text) => {
+            Gtk.TreeIter iter;
+            string data_path = "";
+            places_data.get_iter(out iter, places_filter.convert_path_to_child_path(new Gtk.TreePath.from_string(path)));
+            if(!places_data.iter_is_valid(iter)) {
+                stderr.printf("Error: Couldn't find iterator at %s\n", path);
+                return;
+            }
+            places_data.get(iter, 1, out data_path);
+            File f = File.new_for_uri(data_path);
+            try {
+                f = f.set_display_name(text);
+                places_data.set(iter, 0, text, 1, f.get_uri());
+            } catch(Error e) {
+                stderr.printf("Error renaming directory: %s\n", e.message);
             }
         });
-        places_view.row_expanded.connect((iter, path) => {
-            if(search.text == "")
-                places_data.set(iter, 3, true);
-        });
-        places_view.row_collapsed.connect((iter, path) => {
-            if(search.text == "")
-                places_data.set(iter, 3, false);
-        });
+        Gtk.TreeViewColumn col_name = new Gtk.TreeViewColumn.with_attributes("Name", name_renderer, "text", 0, null);
+        places_view.insert_column(col_name, -1);
+        //places_view.row_expanded.connect((iter, path) => {
+            //if(search.text == "")
+                //places_data.set(iter, 3, true);
+        //});
+        //places_view.row_collapsed.connect((iter, path) => {
+            //if(search.text == "")
+                //places_data.set(iter, 3, false);
+        //});
         places_view.row_activated.connect((path, column) => {
             Gtk.TreeIter iter;
             places_data.get_iter(out iter, path);
@@ -149,11 +150,11 @@ public class MainWindow : Gtk.Window
             else
                 App.move_file(move_path, list[selected]);
         });
-        //places_view.set_search_equal_func((model, col, key, iter) =>{
-            //string name;
-            //model.get(iter, col, out name);
-            //return name.down().contains(key.down()) == false;
-        //});
+        places_view.button_press_event.connect((button) =>{
+            if(button.button == 3) {
+            }
+            return false;
+        });
 
         toolbar.set_title("Sorthelper");
         toolbar.set_subtitle("Completion: ");
@@ -168,7 +169,6 @@ public class MainWindow : Gtk.Window
         // TODO: This function does nothing, but we should add resizing functions to each view class
         panedview.size_allocate.connect(resizeView);
         panedview.set_position(200);
-        places.set_filter_func(this.itemFilter, true);
         view_overlay.set_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK);
         view_overlay.motion_notify_event.connect(() => {
                 if(nextbutton.sensitive || backbutton.sensitive)
@@ -191,6 +191,7 @@ public class MainWindow : Gtk.Window
                 return false;
                 });
         control_box.valign = Gtk.Align.CENTER;
+        places_wrapper.hscrollbar_policy = Gtk.PolicyType.NEVER;
 
         // Init Display Widgets
         skipbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-next-symbolic", Gtk.IconSize.SMALL_TOOLBAR), "Skip");
@@ -217,8 +218,6 @@ public class MainWindow : Gtk.Window
         batchbutton = new Gtk.ToggleToolButton();
         file_label = new Gtk.Label("Stuff goes here");
         search = new Gtk.SearchEntry();
-        default_item = new BaseItem("default");
-        user_item = new BaseItem("user");
 
         skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         skipbutton.clicked.connect(loadFile);
@@ -291,9 +290,6 @@ public class MainWindow : Gtk.Window
             //filterreset = false;
         });
 
-        default_item.expand_all();
-        user_item.expand_all();
-
         // Build Structure
         this.set_titlebar(toolbar);
         this.window_position = Gtk.WindowPosition.CENTER;
@@ -312,9 +308,6 @@ public class MainWindow : Gtk.Window
         view_overlay.add_overlay(control_revealer);
         control_box.add(backbutton);
         control_box.add(nextbutton);
-
-        places.root.add(default_item);
-        places.root.add(user_item);
 
         list_box.pack_start(search, false, false);
         places_wrapper.add(places_view);
@@ -582,17 +575,8 @@ public class MainWindow : Gtk.Window
 
     public void build_directory(string name)
     {
-        DirItem selected = (DirItem)places.selected;
-        if(selected == null)
-            return;
-
-        try {
-            File directory = File.new_for_path(selected.owned_directory.get_path() + "/" + name);
-            directory.make_directory();
-            selected.add(new DirItem.FromFile(directory));
-        } catch(Error e) {
-            stderr.printf("Error creating directory: %s\n", e.message);
-        }
+        // TODO: Reimplement this!
+        stderr.printf("ERROR: Unimplemented stub!\n");
     }
 
     public void move_failed(Motion err)
@@ -691,8 +675,8 @@ public class MainWindow : Gtk.Window
             places_data.get(iter, 0, out name, 3, out expanded);
             if(key.length == 0 || name.down().contains(key)) {
                 val = 2;
-                if(key.length == 0 && expanded)
-                    places_view.expand_row(places_data.get_path(iter), false);
+                //if(key.length == 0 && expanded)
+                    //places_view.expand_row(places_data.get_path(iter), false);
             }
             else if(carry)
                 val = 1;
