@@ -23,7 +23,6 @@ public class MainWindow : Gtk.Window
     private OpenFolderPopover open_pop;
     private OpenFolderPopover target_pop;
     private GLib.Rand random;
-    public ArrayList<string> list;
     public string current_image_location;
     public File current_file;
     public Gtk.InfoBar errorbar;
@@ -56,7 +55,6 @@ public class MainWindow : Gtk.Window
     private Gtk.ButtonBox control_box;
     private Gtk.Revealer control_revealer;
 
-    // Tree Shit
     private Gtk.TreeView places_view;
     private Gtk.TreeStore places_data;
     private Gtk.TreeModelFilter places_filter;
@@ -65,7 +63,6 @@ public class MainWindow : Gtk.Window
     public MainWindow()
     {
         random = new GLib.Rand();
-        list = new ArrayList<string>();
         accel = new Gtk.AccelGroup();
         this.add_accel_group(accel);
         set_events(Gdk.EventMask.ALL_EVENTS_MASK);
@@ -111,16 +108,20 @@ public class MainWindow : Gtk.Window
         //places_view.search_column = 0;
         places_view.set_headers_visible(false);
         Gtk.CellRendererText name_renderer = new Gtk.CellRendererText();
-        name_renderer.editable = true;
+        //name_renderer.editable = true;
         name_renderer.edited.connect((path, text) => {
             Gtk.TreeIter iter;
             string data_path = "";
-            places_data.get_iter(out iter, places_filter.convert_path_to_child_path(new Gtk.TreePath.from_string(path)));
+            string old_name = "";
+            Gtk.TreePath child_path = places_filter.convert_path_to_child_path(new Gtk.TreePath.from_string(path));
+            places_data.get_iter(out iter, child_path);
             if(!places_data.iter_is_valid(iter)) {
-                stderr.printf("Error: Couldn't find iterator at %s\n", path);
+                stderr.printf("Error: Couldn't find iterator at %s->%s\n", path, child_path.to_string());
                 return;
             }
-            places_data.get(iter, 1, out data_path);
+            places_data.get(iter, 0, out old_name, 1, out data_path);
+            if(old_name == text)
+                return;
             File f = File.new_for_uri(data_path);
             try {
                 f = f.set_display_name(text);
@@ -141,14 +142,37 @@ public class MainWindow : Gtk.Window
         //});
         places_view.row_activated.connect((path, column) => {
             Gtk.TreeIter iter;
-            places_data.get_iter(out iter, path);
+            Gtk.TreePath child_path = places_filter.convert_path_to_child_path(path);
+            places_data.get_iter(out iter, child_path);
+            if(!places_data.iter_is_valid(iter)) {
+                stderr.printf("Error: Couldn't find iterator at %s->%s\n", path.to_string(), child_path.to_string());
+                return;
+            }
             string move_path = "";
-            places_data.get(iter, 1, &move_path);
+            places_data.get(iter, 1, out move_path);
 
-            if(App.batch_mode)
-                App.move_files(move_path, list);
+            if(App.batch_mode) {
+                stderr.printf("Moving several files...\n");
+                Motion err = App.move_files(move_path, App.to_display);
+                if(err.new_position.size != 0)
+                    move_failed(err);
+                else
+                    stderr.printf("Move succeeded.\n");
+            } else {
+                stderr.printf("Moving single file...");
+                stderr.printf("(%d/%d)\n", selected, App.to_display.size);
+                bool success = App.move_file(move_path, App.to_display[selected]);
+                if(!success)
+                    move_failed_single(move_path);
+                else
+                    stderr.printf("Move succeeded.\n");
+                if(selected >= App.to_display.size)
+                    selected--;
+            }
+            if(App.to_display.size == 0)
+                loadFile();
             else
-                App.move_file(move_path, list[selected]);
+                resetView();
         });
         places_view.button_press_event.connect((button) =>{
             if(button.button == 3) {

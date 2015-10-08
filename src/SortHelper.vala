@@ -55,17 +55,71 @@ public class App : Granite.Application
     }
 
     // Returned if succeeded
-    public static bool move_file(string location, string file)
+    public static bool move_file(string location, File file)
     {
-        stderr.printf("Not implemented");
-        return false;
+        Motion move = Motion();
+        Motion failure_list = Motion();
+        move.new_position = new ArrayList<File>();
+        move.old_folder = new ArrayList<string>();
+        failure_list.new_position = new ArrayList<File>();
+        failure_list.old_folder = new ArrayList<string>();
+        try{
+            string source = file.get_parent().get_path();
+            string name = file.query_info ("standard::*", 0).get_name();
+            File f2 = File.new_for_uri(location + "/" + name);
+            file.move(f2, FileCopyFlags.ALL_METADATA);
+            move.new_position.add(f2);
+            move.old_folder.add(location);
+            move.new_position.add(file);
+            move.old_folder.add(source);
+            item_list.remove(file);
+            to_display.remove(file);
+        } catch (Error e) {
+            stderr.printf ("IO Error: %s\n", e.message);
+            last_dest = location;
+            return false;
+        }
+        undo_list.update(move);
+        return true;
     }
 
     // Returns a list of failures
-    public static ArrayList<File> move_files(string location, ArrayList<string> files)
+    public static Motion move_files(string location, ArrayList<File> files)
     {
-        stderr.printf("Not implemented");
-        return new ArrayList<File>();
+        Motion move = Motion();
+        Motion failure_list = Motion();
+        move.new_position = new ArrayList<File>();
+        move.old_folder = new ArrayList<string>();
+        failure_list.new_position = new ArrayList<File>();
+        failure_list.old_folder = new ArrayList<string>();
+        for(int i = 0; i < files.size; ++i) {	
+            string name = "";
+            try{
+                File f = files[i];
+                string source = f.get_parent().get_path();
+                name = f.query_info ("standard::*", 0).get_name();
+                File f2 = File.new_for_uri(location + "/" + name);
+                stderr.printf("From: %s\n", location + "/" + name);
+                failure_list.new_position.add(f);
+                failure_list.old_folder.add("");
+                f.move(f2, FileCopyFlags.ALL_METADATA);
+                move.new_position.add(f2);
+                move.old_folder.add(source);
+            } catch (Error e) {
+                stderr.printf ("IO Error: %s\n", e.message);
+                //App.main_window.container1.pack_end(App.main_window.errorbar, false, false);
+                //App.main_window.container1.show_all();
+                last_dest = location;
+                failure_list.old_folder[failure_list.old_folder.size - 1] = location + "/" + name;
+                continue;
+            }
+            item_list.remove(App.to_display[i]);
+            to_display.remove_at(i);
+            --i;
+        }
+        if(move.new_position.size > 0)
+            undo_list.update(move);
+        return failure_list;
     }
 }
 }
