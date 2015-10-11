@@ -104,9 +104,14 @@ public class MainWindow : Gtk.Window
             //return name.down().contains(filter_key);
         //});
         places_view = new Gtk.TreeView.with_model(places_filter);
-        //places_view.enable_search = true;
-        //places_view.search_column = 0;
+        places_view.enable_search = true;
+        places_view.search_column = 0;
         places_view.set_headers_visible(false);
+        places_view.set_search_equal_func((model, column, key, iter) =>{
+            string name = "";
+            model.get(iter, 0, out name);
+            return !name.down().contains(key.down());
+        });
         Gtk.CellRendererText name_renderer = new Gtk.CellRendererText();
         //name_renderer.editable = true;
         name_renderer.edited.connect((path, text) => {
@@ -215,7 +220,6 @@ public class MainWindow : Gtk.Window
                 return false;
                 });
         control_box.valign = Gtk.Align.CENTER;
-        places_wrapper.hscrollbar_policy = Gtk.PolicyType.NEVER;
 
         // Init Display Widgets
         skipbutton = new Gtk.ToolButton(new Gtk.Image.from_icon_name("go-next-symbolic", Gtk.IconSize.SMALL_TOOLBAR), "Skip");
@@ -252,9 +256,8 @@ public class MainWindow : Gtk.Window
         addbutton.clicked.connect(() => {add_pop.show_all();});
         openbutton.clicked.connect(() => {open_pop.show_all();});
         add_pop.file_created.connect(build_directory);
-        open_pop.file_chosen.connect((name) => {
-            //addDir(new File.new_for_path(name));
-            // TODO: Reimplement this
+        open_pop.file_chosen.connect((file) => {
+            addDir(file, null);
         });
         target_pop.file_chosen.connect((file) => {
             App.item_list.load_folder(file);
@@ -296,22 +299,15 @@ public class MainWindow : Gtk.Window
 
         search.set_placeholder_text("Filter...");
         search.search_changed.connect(() => {
-            //filterreset = (search.get_text_length() == 0);
-            //filtering = !filterreset;
-            //places.refilter();
-                //filter_key = search.text.down();
-                //places_filter.refilter();
             traversal_filter.begin(search.text);
-            //if(filterreset) {
-                //default_item.collapse_all();
-                //user_item.collapse_all();
-                //default_item.expand_with_parents();
-                //user_item.expand_with_parents();
-            //} else {
-                //default_item.expand_all();
-                //user_item.expand_all();
-            //}
-            //filterreset = false;
+        });
+        places_view.set_search_entry(search);
+        search.activate.connect(() => {
+            Gtk.TreePath path = null;
+            Gtk.TreeViewColumn column;
+            places_view.get_cursor(out path, out column);
+            if(path != null)
+                places_view.row_activated(path, column);
         });
 
         // Build Structure
@@ -599,8 +595,20 @@ public class MainWindow : Gtk.Window
 
     public void build_directory(string name)
     {
-        // TODO: Reimplement this!
-        stderr.printf("ERROR: Unimplemented stub!\n");
+        Gtk.TreeIter iter;
+        Gtk.TreePath path;
+        places_view.get_cursor(out path, null);
+        Gtk.TreePath child_path = places_filter.convert_path_to_child_path(path);
+        places_data.get_iter(out iter, child_path);
+        string move_path = "";
+        places_data.get(iter, 1, out move_path);
+        File f = File.new_for_uri(move_path + "/" + name);
+        try {
+            f.make_directory();
+        } catch(Error e) {
+            warning("Couldn't Create Tag: %s", e.message);
+        }
+        addDir(f, iter);
     }
 
     public void move_failed(Motion err)
