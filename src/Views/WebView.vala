@@ -59,7 +59,9 @@ namespace SortHelper
         {
         }
 
-        public void unload() {}
+        public void unload() {
+            web_view.load_html("<html></html>", null);
+        }
     }
 }
 
