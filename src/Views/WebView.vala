@@ -17,7 +17,7 @@ namespace SortHelper
             WebKit.Settings view_settings = new WebKit.Settings();
             view_settings.enable_javascript = true;
             view_settings.enable_developer_extras = true;
-            web_view.context_menu.connect(()=>{return false;});
+            //web_view.context_menu.connect(()=>{return false;});
             web_view.set_settings(view_settings);
             web_view.get_context().get_security_manager().register_uri_scheme_as_cors_enabled("file");
             web_view.decide_policy.connect((decision, type) => {
@@ -41,7 +41,7 @@ namespace SortHelper
 
         public void load_swf(File swf_file)
         {
-            web_view.load_html("<html>\n<body>\n<embed width=\"100%\" height=\"100%\" src=\"" + swf_file.get_uri() + "\"/>\n</body>\n</html>", App.item_list.origin_folder.get_uri());
+            web_view.load_html("<html><body><p>Test Text</p><embed width=\"100%\" height=\"100%\" src=\"" + swf_file.get_uri() + "\"/></body></html>", null);
         }
 
         public bool load(File infile)
@@ -59,7 +59,8 @@ namespace SortHelper
         {
         }
 
-        public void unload() {
+        public void unload()
+        {
             web_view.load_html("<html></html>", null);
         }
     }

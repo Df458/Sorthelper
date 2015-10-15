@@ -36,6 +36,8 @@ public class MainWindow : Gtk.Window
     public DefaultView default_view;
     public AudioView audio_view;
     public WebView web_view;
+    public ArchiveView archive_view;
+    public ComicView comic_view;
 
     public Gtk.SearchEntry search;
     public Gtk.Box list_box;
@@ -74,6 +76,8 @@ public class MainWindow : Gtk.Window
         audio_view = new AudioView();
         vidview = new VideoView();
         web_view = new WebView();
+        archive_view = new ArchiveView();
+        comic_view = new ComicView();
 
         current_view = default_view;
         chosen_view = empty_view;
@@ -529,7 +533,7 @@ public class MainWindow : Gtk.Window
             chosen_view = default_view;
             try {
                 string filetype = App.to_display[0].query_info("standard::content-type", 0, null).get_content_type();
-                stdout.printf("Got type: %s\n", filetype);
+                stdout.printf("\nGot type: %s\n\n", filetype);
                 switch(filetype) {
                     case "audio/mpeg":
                         chosen_view = audio_view;
@@ -551,6 +555,17 @@ public class MainWindow : Gtk.Window
                     case "application/vnd.adobe.flash.movie":
                         web_view.is_swf = true;
                         chosen_view = web_view;
+                        break;
+
+                    case "application/x-cbr":
+                    case "application/x-cbt":
+                    case "application/x-cbz":
+                        chosen_view = comic_view;
+                        break;
+
+                    case "application/x-rar-compressed":
+                    case "application/zip":
+                        chosen_view = archive_view;
                         break;
 
                     default:

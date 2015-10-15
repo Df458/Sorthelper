@@ -50,7 +50,8 @@ namespace SortHelper
 
         public void unload()
         {
-            src.set_state(Gst.State.READY);
+            //src.set_state(Gst.State.READY);
+            src.set_state(Gst.State.NULL);
         }
     }
 }
