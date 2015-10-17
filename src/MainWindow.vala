@@ -29,6 +29,7 @@ public class MainWindow : Gtk.Window
     private Gtk.ActionBar status_bar;
     private Gtk.Label file_label;
     public int selected = 0;
+    private bool overlay_hover = false;
 
     public ImageFullView fullview;
     public VideoView vidview;
@@ -209,6 +210,8 @@ public class MainWindow : Gtk.Window
                 if(has_last_motion)
                     Source.remove(last_motion_timer);
                 last_motion_timer = Timeout.add_seconds(3, () =>{
+                        if(overlay_hover)
+                            return false;
                         control_revealer.set_reveal_child(false);
                         has_last_motion = false;
                         return false;
@@ -292,10 +295,26 @@ public class MainWindow : Gtk.Window
         nextbutton.halign = Gtk.Align.END;
         nextbutton.valign = Gtk.Align.CENTER;
         nextbutton.margin = 10;
+        nextbutton.enter_notify_event.connect((e) =>{
+            overlay_hover = true;
+            return false;
+        });
+        nextbutton.leave_notify_event.connect((e) =>{
+            overlay_hover = false;
+            return false;
+        });
         backbutton.clicked.connect(() => { go_prev(); });
         backbutton.halign = Gtk.Align.START;
         backbutton.valign = Gtk.Align.CENTER;
         backbutton.margin = 10;
+        backbutton.enter_notify_event.connect((e) =>{
+            overlay_hover = true;
+            return false;
+        });
+        backbutton.leave_notify_event.connect((e) =>{
+            overlay_hover = false;
+            return false;
+        });
         batchbutton.set_label("Batch Mode");
         batchbutton.set_icon_widget(new Gtk.Image.from_icon_name("edit-select-all", Gtk.IconSize.SMALL_TOOLBAR));
         batchbutton.set_active (true);
