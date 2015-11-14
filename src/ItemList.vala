@@ -11,34 +11,39 @@ public class ItemList
     public int orig_size = 0;
     public int size { get {return files.size;} }
     
-    public ItemList.from_folder(File infile)
+    public ItemList()
     {
-        origin_folder = infile;
         random = new GLib.Rand();
-        try {
-            files = new ArrayList<File>();
-            indices = new HashMap<File, int>();
-            
-            var enumerator = infile.enumerate_children (FileAttribute.STANDARD_NAME, 0);
-
-            FileInfo file_info;
-            while ((file_info = enumerator.next_file ()) != null) {
-                files.add(enumerator.get_child(file_info));
-            }
-        }catch(GLib.Error e){
-            stderr.printf(e.message);
-        }
-        files.sort(alphasort);
-        orig_size = files.size;
+        files = new ArrayList<File>();
+        indices = new HashMap<File, int>();
     }
+
+    //public ItemList.from_folder(File infile)
+    //{
+        //origin_folder = infile;
+        //random = new GLib.Rand();
+        //files = new ArrayList<File>();
+        //indices = new HashMap<File, int>();
+        //try {
+            //var enumerator = infile.enumerate_children (FileAttribute.STANDARD_NAME, 0);
+
+            //FileInfo file_info;
+            //while ((file_info = enumerator.next_file ()) != null) {
+                //files.add(enumerator.get_child(file_info));
+            //}
+        //}catch(GLib.Error e){
+            //stderr.printf(e.message);
+        //}
+        //files.sort(alphasort);
+        //orig_size = files.size;
+    //}
 
     public void load_folder(File infile)
     {
+        files.clear();
+        indices.clear();
         origin_folder = infile;
         try {
-            files.clear();
-            indices.clear();
-            
             var enumerator = infile.enumerate_children (FileAttribute.STANDARD_NAME, 0);
 
             FileInfo file_info;

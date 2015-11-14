@@ -2,15 +2,19 @@ using GLib;
 using Gee;
 namespace SortHelper
 {
-public class MainWindow : Gtk.Window
+public class MainWindow : Gtk.ApplicationWindow
 {
     public Gtk.Box container1;
     private Gtk.HeaderBar toolbar;
     private Gtk.Paned panedview;
+
+    private Gtk.Box settingsview;
+    private Gtk.CheckButton autoreloadbutton;
+    private Gtk.ButtonBox settings_confirm_buttons;
+
     private Gtk.Button skipbutton;
     private Gtk.Button deletebutton;
     private Gtk.ToggleButton batchbutton;
-    private Gtk.Button refreshbutton;
     private Gtk.Button addbutton;
     private Gtk.Button newbutton;
     private Gtk.Button openbutton;
@@ -19,6 +23,7 @@ public class MainWindow : Gtk.Window
     private Gtk.Button errorbutton;
     private Gtk.Button nextbutton;
     private Gtk.Button backbutton;
+    private Gtk.MenuButton menubutton;
     private AddFolderPopover add_pop;
     private OpenFolderPopover open_pop;
     private OpenFolderPopover target_pop;
@@ -39,6 +44,7 @@ public class MainWindow : Gtk.Window
     public WebView web_view;
     public ArchiveView archive_view;
     public ComicView comic_view;
+    public WelcomeView welcome_view;
 
     public Gtk.SearchEntry search;
     public Gtk.Box list_box;
@@ -80,14 +86,16 @@ public class MainWindow : Gtk.Window
         web_view = new WebView();
         archive_view = new ArchiveView();
         comic_view = new ComicView();
+        welcome_view = new WelcomeView();
 
-        current_view = default_view;
+        current_view = welcome_view;
         chosen_view = empty_view;
 
         // Init Structural Widgets
         toolbar = new Gtk.HeaderBar();
         status_bar = new Gtk.ActionBar();
         panedview = new Gtk.Paned(Gtk.Orientation.HORIZONTAL);
+        settingsview = new Gtk.Box(Gtk.Orientation.VERTICAL, 5);
         list_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 5);
         // TODO: Consider making errorbar a class as well
         errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
@@ -96,20 +104,13 @@ public class MainWindow : Gtk.Window
         view_overlay = new Gtk.Overlay();
         control_box = new Gtk.ButtonBox(Gtk.Orientation.HORIZONTAL);
         control_revealer = new Gtk.Revealer();
-        control_revealer.set_reveal_child(true);
+        control_revealer.set_reveal_child(false);
         Gtk.ScrolledWindow places_wrapper = new Gtk.ScrolledWindow(null, null);
 
         places_data = new Gtk.TreeStore(4, typeof(string), typeof(string), typeof(bool), typeof(bool));
         places_data.set_sort_column_id(0, Gtk.SortType.ASCENDING);
         places_filter = new Gtk.TreeModelFilter(places_data, null);
         places_filter.set_visible_column(2);
-        //places_filter.set_visible_func((model, iter) => {
-            //if(filter_key == null)
-                //return true;
-            //string name;
-            //model.get(iter, 0, out name);
-            //return name.down().contains(filter_key);
-        //});
         places_view = new Gtk.TreeView.with_model(places_filter);
         places_view.enable_search = true;
         places_view.search_column = 0;
@@ -120,7 +121,6 @@ public class MainWindow : Gtk.Window
             return !name.down().contains(key.down());
         });
         Gtk.CellRendererText name_renderer = new Gtk.CellRendererText();
-        //name_renderer.editable = true;
         name_renderer.editing_canceled.connect(() => {
             name_renderer.editable = false;
         });
@@ -177,14 +177,6 @@ public class MainWindow : Gtk.Window
         });
         branch_group.add_action(act_rename);
         places_view.insert_action_group("branch", branch_group);
-        //places_view.row_expanded.connect((iter, path) => {
-            //if(search.text == "")
-                //places_data.set(iter, 3, true);
-        //});
-        //places_view.row_collapsed.connect((iter, path) => {
-            //if(search.text == "")
-                //places_data.set(iter, 3, false);
-        //});
         places_view.row_activated.connect((path, column) => {
             Gtk.TreeIter iter;
             Gtk.TreePath child_path = places_filter.convert_path_to_child_path(path);
@@ -256,7 +248,6 @@ public class MainWindow : Gtk.Window
         skipbutton = new Gtk.Button.from_icon_name("go-next-symbolic");
         deletebutton = new Gtk.Button.from_icon_name("edit-delete-symbolic");
         deletebutton.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION);
-        refreshbutton = new Gtk.Button.from_icon_name("view-refresh-symbolic");
         newbutton = new Gtk.Button.from_icon_name("document-new-symbolic");
         target_pop = new OpenFolderPopover(newbutton);
         addbutton = new Gtk.Button.from_icon_name("folder-new-symbolic");
@@ -272,6 +263,9 @@ public class MainWindow : Gtk.Window
         backbutton = new Gtk.Button.from_icon_name("go-previous-symbolic");
         backbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
         batchbutton = new Gtk.ToggleButton();
+        autoreloadbutton = new Gtk.CheckButton.with_label("Load the last sorted folder on startup");
+        autoreloadbutton.set_active(App.auto_reload);
+
         file_label = new Gtk.Label("Stuff goes here");
         search = new Gtk.SearchEntry();
 
@@ -279,7 +273,6 @@ public class MainWindow : Gtk.Window
         skipbutton.clicked.connect(loadFile);
         deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         deletebutton.clicked.connect(removeFile);
-        refreshbutton.clicked.connect(loadDirItems);
         newbutton.clicked.connect(() => {target_pop.show_all();});
         addbutton.clicked.connect(() => {add_pop.show_all();});
         openbutton.clicked.connect(() => {open_pop.show_all();});
@@ -341,6 +334,43 @@ public class MainWindow : Gtk.Window
         batchbutton.set_active (true);
         batchbutton.toggled.connect(swapBatch);
 
+        GLib.Menu main_menu = new GLib.Menu();
+        GLib.MenuItem settings_item = new GLib.MenuItem("Settings", "win.settings");
+        main_menu.append_item(settings_item);
+        GLib.SimpleAction settings_action = new GLib.SimpleAction("settings", null);
+        settings_action.set_enabled(true);
+        settings_action.activate.connect(() => {
+            container1.remove(panedview);
+            container1.pack_end(settingsview, true, true);
+            settings_action.set_enabled(false);
+            autoreloadbutton.set_active(App.auto_reload);
+            container1.show_all();
+        });
+        this.add_action(settings_action);
+        menubutton = new Gtk.MenuButton();
+        menubutton.direction = Gtk.ArrowType.UP;
+        menubutton.set_image(new Gtk.Image.from_icon_name("open-menu-symbolic", Gtk.IconSize.SMALL_TOOLBAR));
+        menubutton.set_menu_model(main_menu);
+
+        settings_confirm_buttons = new Gtk.HButtonBox();
+        Gtk.Button settings_cancel_button = new Gtk.Button.with_label("Cancel");
+        settings_cancel_button.clicked.connect(() => {
+            container1.remove(settingsview);
+            container1.pack_end(panedview, true, true);
+            settings_action.set_enabled(true);
+            container1.show_all();
+        });
+        Gtk.Button settings_confirm_button = new Gtk.Button.with_label("Confirm");
+        settings_confirm_button.clicked.connect(() => {
+            App.app_settings.set_boolean("open-last", autoreloadbutton.get_active());
+            container1.remove(settingsview);
+            container1.pack_end(panedview, true, true);
+            settings_action.set_enabled(true);
+            container1.show_all();
+        });
+        settings_confirm_buttons.add(settings_cancel_button);
+        settings_confirm_buttons.add(settings_confirm_button);
+
         search.set_placeholder_text("Filter...");
         search.search_changed.connect(() => {
             traversal_filter.begin(search.text);
@@ -379,14 +409,17 @@ public class MainWindow : Gtk.Window
         status_bar.set_center_widget(file_label);
         status_bar.pack_start(addbutton);
         status_bar.pack_start(openbutton);
-        status_bar.pack_start(refreshbutton);
+        status_bar.pack_end(menubutton);
 
         panedview.pack1(list_box, false, true);
         panedview.pack2(view_overlay, true, true);
+        settingsview.pack_start(autoreloadbutton, true, true);
+        settingsview.pack_end(settings_confirm_buttons, false, false);
         container1.pack_end(status_bar, false, false);
         container1.pack_end(panedview, true, true);
 
         this.add(container1);
+        this.show_all();
     }
     
     void respond (int response_id)
@@ -701,6 +734,7 @@ public class MainWindow : Gtk.Window
     private void on_exit()
     {
         chosen_view.unload();
+        App.save_last();
     }
 
     public bool itemFilter(Granite.Widgets.SourceList.Item item)

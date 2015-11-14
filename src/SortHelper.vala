@@ -22,7 +22,9 @@ public class App : Granite.Application
     public static ItemList item_list;
     public static UndoList undo_list;
     public static bool batch_mode = true;
+    public static bool auto_reload = false;
     public static string last_dest = "";
+    public static GLib.Settings app_settings;
     
     construct
     {
@@ -43,14 +45,22 @@ public class App : Granite.Application
     protected override void activate()
     {
         if (main_window == null) {
-            var directory = File.new_for_path ("/home/df458/Downloads/.dl");
-            item_list = new ItemList.from_folder(directory);
+            app_settings = new GLib.Settings("org.df458.sorthelper");
+            string? last_folder = null;
+            if(app_settings.get_boolean("open-last")) {
+                last_folder = app_settings.get_string("last-folder");
+                auto_reload = true;
+            }
+            item_list = new ItemList();
             undo_list = new UndoList();
 
             main_window = new MainWindow();
             main_window.set_application(this);
-            main_window.loadDirItems();
-            main_window.loadFile();
+            if(last_folder != null && last_folder.length > 0) {
+                var directory = File.new_for_path (last_folder);
+                item_list.load_folder(directory);
+                main_window.loadFile();
+            }
         }
     }
 
@@ -120,6 +130,11 @@ public class App : Granite.Application
         if(move.new_position.size > 0)
             undo_list.update(move);
         return failure_list;
+    }
+
+    public static void save_last()
+    {
+        app_settings.set_string("last-folder", item_list.origin_folder.get_path());
     }
 }
 }
