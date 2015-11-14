@@ -6,6 +6,7 @@ namespace SortHelper
     {
         public abstract bool load(File to_display);
         public abstract void display();
+        public abstract void resize();
         public abstract void unload();
 	}
 }

@@ -48,6 +48,8 @@ namespace SortHelper
             return true;
         }	
 
+        public void resize() {}
+
         public void unload()
         {
             //src.set_state(Gst.State.READY);

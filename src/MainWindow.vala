@@ -445,6 +445,7 @@ public class MainWindow : Gtk.ApplicationWindow
     
     public void resizeView()
     {
+        current_view.resize();
     }
 
     public void go_next()

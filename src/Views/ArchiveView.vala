@@ -35,6 +35,8 @@ namespace SortHelper
             }
         }
 
+        public void resize() {}
+
         public void unload()
         {
             archive.close();

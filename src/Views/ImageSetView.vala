@@ -6,6 +6,8 @@ namespace SortHelper{
 
         public void display() {}
 
+        public void resize() {}
+
         public void unload() {}
 	}
 }
