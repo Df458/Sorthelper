@@ -768,7 +768,8 @@ public class MainWindow : Gtk.ApplicationWindow
     public async void traversal_filter(string key)
     {
         Gtk.TreeIter iter;
-        places_data.get_iter_first(out iter);
+        if(!places_data.get_iter_first(out iter))
+            return;
         if(key.length == 0)
             places_view.collapse_all();
         yield traversal_step(iter, key.down());
