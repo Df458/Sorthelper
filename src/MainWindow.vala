@@ -58,11 +58,8 @@ public class MainWindow : Gtk.ApplicationWindow
     private Motion failure_list;
     private bool failed_last = false;
 
-    private uint last_motion_timer;
-    private bool has_last_motion = false;
-
     private Gtk.ButtonBox control_box;
-    private Gtk.Revealer control_revealer;
+    //private Gtk.Revealer control_revealer;
 
     private Gtk.TreeView places_view;
     private Gtk.TreeStore places_data;
@@ -103,8 +100,8 @@ public class MainWindow : Gtk.ApplicationWindow
         container1 = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
         view_overlay = new Gtk.Overlay();
         control_box = new Gtk.ButtonBox(Gtk.Orientation.HORIZONTAL);
-        control_revealer = new Gtk.Revealer();
-        control_revealer.set_reveal_child(false);
+        //control_revealer = new Gtk.Revealer();
+        //control_revealer.set_reveal_child(false);
         Gtk.ScrolledWindow places_wrapper = new Gtk.ScrolledWindow(null, null);
 
         places_data = new Gtk.TreeStore(4, typeof(string), typeof(string), typeof(bool), typeof(bool));
@@ -303,8 +300,8 @@ public class MainWindow : Gtk.ApplicationWindow
             undobutton.set_sensitive(true);
         });
         errorbutton.set_sensitive(false);
-        control_revealer.add(control_box);
-        control_revealer.set_transition_type(Gtk.RevealerTransitionType.CROSSFADE);
+        //control_revealer.add(control_box);
+        //control_revealer.set_transition_type(Gtk.RevealerTransitionType.CROSSFADE);
         nextbutton.clicked.connect(() => { go_next(); });
         nextbutton.halign = Gtk.Align.END;
         nextbutton.valign = Gtk.Align.CENTER;
@@ -399,9 +396,11 @@ public class MainWindow : Gtk.ApplicationWindow
         toolbar.pack_end(errorbutton);
 
         view_overlay.add(current_view);
-        view_overlay.add_overlay(control_revealer);
-        control_box.add(backbutton);
-        control_box.add(nextbutton);
+        //view_overlay.add_overlay(control_box);
+        view_overlay.add_overlay(backbutton);
+        view_overlay.add_overlay(nextbutton);
+        //control_box.add(backbutton);
+        //control_box.add(nextbutton);
 
         list_box.pack_start(search, false, false);
         places_wrapper.add(places_view);
@@ -595,10 +594,10 @@ public class MainWindow : Gtk.ApplicationWindow
         if(App.undo_list.previous_count > 0)
             undobutton.set_sensitive(true);
         redobutton.set_sensitive(App.undo_list.next_count > 0);
-        control_revealer.set_reveal_child(false);
+        //control_revealer.set_reveal_child(false);
         if(App.to_display.size > 1) {
             nextbutton.sensitive = true;
-            control_revealer.set_reveal_child(true);
+            //control_revealer.set_reveal_child(true);
         }
         chosen_view.unload();
         if(App.to_display.is_empty) {
@@ -664,7 +663,7 @@ public class MainWindow : Gtk.ApplicationWindow
         file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
         current_view.load(App.to_display[selected]);
         current_view.display();
-        control_revealer.set_reveal_child(App.to_display.size > 1);
+        //control_revealer.set_reveal_child(App.to_display.size > 1);
         if(selected >= App.to_display.size - 1) {
             nextbutton.sensitive = false;
         }

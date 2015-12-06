@@ -41,7 +41,7 @@ namespace SortHelper
 
         public void load_swf(File swf_file)
         {
-            web_view.load_html("<html><body><p>Test Text</p><embed width=\"100%\" height=\"100%\" src=\"" + swf_file.get_uri() + "\"/></body></html>", null);
+            web_view.load_html("<html><body><embed width=\"100%\" height=\"100%\" src=\"" + swf_file.get_uri() + "\"/></body></html>", swf_file.get_parent().get_uri());
         }
 
         public bool load(File infile)
