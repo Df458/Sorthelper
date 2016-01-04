@@ -1,127 +1,277 @@
-using GLib;
 using Gee;
+using Gtk;
 namespace SortHelper
 {
-public class MainWindow : Gtk.ApplicationWindow
+public class MainWindow : ApplicationWindow
 {
-    public Gtk.Box container1;
-    private Gtk.HeaderBar toolbar;
-    private Gtk.Paned panedview;
+    private     Rand random;
+    private     AccelGroup accel;
+    public int  selected = 0;
+    public File current_file;
 
+    private HeaderBar toolbar;
+
+    private Paned main_paned;
+    private Box   main_box;
+    private Box   list_box;
+    private Box   view_box;
+    private Box   control_box;
+    private Box   control_link_box;
+    private Stack main_stack;
+    private Stack secondary_stack;
+
+    private MenuButton   menubutton;
+    private Button       undobutton;
+    private Button       redobutton;
+    private Button       skipbutton;
+    private Button       nextbutton;
+    private Button       backbutton;
+    private Button       deletebutton;
+    private Button       openbutton;
+    private ToggleButton batchbutton;
+    /*
     private Gtk.Box settingsview;
     private Gtk.CheckButton autoreloadbutton;
     private Gtk.ButtonBox settings_confirm_buttons;
 
-    private Gtk.Button skipbutton;
-    private Gtk.Button deletebutton;
-    private Gtk.ToggleButton batchbutton;
     private Gtk.Button addbutton;
     private Gtk.Button newbutton;
     private Gtk.Button openbutton;
-    private Gtk.Button undobutton;
-    private Gtk.Button redobutton;
     private Gtk.Button errorbutton;
-    private Gtk.Button nextbutton;
-    private Gtk.Button backbutton;
-    private Gtk.MenuButton menubutton;
-    private AddFolderPopover add_pop;
-    private OpenFolderPopover open_pop;
     private OpenFolderPopover target_pop;
-    private GLib.Rand random;
     public string current_image_location;
-    public File current_file;
-    public Gtk.InfoBar errorbar;
     private Gtk.ActionBar status_bar;
     private Gtk.Label file_label;
-    public int selected = 0;
     private bool overlay_hover = false;
 
-    public ImageFullView fullview;
-    public VideoView vidview;
-    public EmptyView empty_view;
-    public DefaultView default_view;
-    public AudioView audio_view;
-    public WebView web_view;
-    public ArchiveView archive_view;
-    public ComicView comic_view;
-    public WelcomeView welcome_view;
+    private Gtk.ButtonBox control_box;*/
 
-    public Gtk.SearchEntry search;
-    public Gtk.Box list_box;
-    public Gtk.AccelGroup accel;
-    private View current_view;
-    private View chosen_view;
-    private Gtk.Overlay view_overlay;
-
-    public bool filtering = false;
-    public bool filterreset = false;
     private Motion failure_list;
     private bool failed_last = false;
 
-    private Gtk.ButtonBox control_box;
-    //private Gtk.Revealer control_revealer;
+    private ImageFullView fullview;
+    private VideoView     vidview;
+    private EmptyView     empty_view;
+    private DefaultView   default_view;
+    private AudioView     audio_view;
+    private WebView       web_view;
+    private ArchiveView   archive_view;
+    private ComicView     comic_view;
+    private WelcomeView   welcome_view;
+    private View          chosen_view;
+    private Overlay       view_overlay;
 
-    private Gtk.TreeView places_view;
-    private Gtk.TreeStore places_data;
-    private Gtk.TreeModelFilter places_filter;
+    private InfoBar errorbar;
+
+    private SearchEntry     search;
+    private TreeView        places_view;
+    private TreeStore       places_data;
+    private TreeModelFilter places_filter;
+    private ScrolledWindow  places_wrapper;
+
+    private OpenFolderPopover open_pop;
+    private OpenFolderPopover target_pop;
+    private AddFolderPopover  add_pop;
+
     private string filter_key;
+    private bool   filtering = false;
+    private bool   filterreset = false;
+
+    private GLib.Menu main_menu;
     private Gtk.Menu places_menu;
  
     public MainWindow()
     {
+        this.window_position = Gtk.WindowPosition.CENTER;
+        this.set_default_size (1024, 768);
+
         random = new GLib.Rand();
         accel = new Gtk.AccelGroup();
         this.add_accel_group(accel);
         set_events(Gdk.EventMask.ALL_EVENTS_MASK);
 
-        // Init Windows and Popovers
-        fullview = new ImageFullView();
+        init_structure();
+        init_content();
+        connect_signals();
+        add_actions();
+        init_menus();
+
+        this.show_all();
+        /*
+        settingsview = new Gtk.Box(Gtk.Orientation.VERTICAL, 5);
+
+        autoreloadbutton = new Gtk.CheckButton.with_label("Load the last sorted folder on startup");
+        autoreloadbutton.set_active(App.auto_reload);
+        errorbutton.set_sensitive(false);
+
+        settings_confirm_buttons = new Gtk.HButtonBox();
+        Gtk.Button settings_cancel_button = new Gtk.Button.with_label("Cancel");
+        settings_cancel_button.clicked.connect(() => {
+            main_box.remove(settingsview);
+            main_box.pack_end(panedview, true, true);
+            settings_action.set_enabled(true);
+            main_box.show_all();
+        });
+        Gtk.Button settings_confirm_button = new Gtk.Button.with_label("Confirm");
+        settings_confirm_button.clicked.connect(() => {
+            App.app_settings.set_boolean("open-last", autoreloadbutton.get_active());
+            main_box.remove(settingsview);
+            main_box.pack_end(panedview, true, true);
+            settings_action.set_enabled(true);
+            main_box.show_all();
+        });
+        settings_confirm_buttons.add(settings_cancel_button);
+        settings_confirm_buttons.add(settings_confirm_button);
+
+        settingsview.pack_start(autoreloadbutton, true, true);
+        settingsview.pack_end(settings_confirm_buttons, false, false);
+        */
+    }
+
+    private void init_structure()
+    {
+        toolbar          = new HeaderBar();
+        main_paned       = new Paned(Orientation.HORIZONTAL);
+        main_box         = new Box(Orientation.VERTICAL, 0);
+        view_box         = new Box(Orientation.HORIZONTAL, 18);
+        list_box         = new Box(Orientation.VERTICAL, 6);
+        control_box      = new Box(Orientation.HORIZONTAL, 6);
+        control_link_box = new Box(Orientation.HORIZONTAL, 0);
+        main_stack       = new Stack();
+        view_overlay     = new Overlay();
+        secondary_stack = new Stack();
+        errorbar        = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
+
+        toolbar.set_title("Sorthelper");
+        toolbar.set_show_close_button(true);
+        toolbar.set_decoration_layout("menu:close");
+        control_box.halign = Align.END;
+        control_box.valign = Align.END;
+        control_box.margin = 18;
+        control_link_box.get_style_context().add_class(STYLE_CLASS_LINKED);
+        secondary_stack.visible = false;
+        main_paned.set_position(200);
+
+        // TODO: Consider making errorbar a class as well
+        Gtk.Container content = errorbar.get_content_area();
+
+        errorbar.set_show_close_button(true);
+        errorbar.set_response_sensitive(1, true);
+        errorbar.set_response_sensitive(2, true);
+        errorbar.set_message_type(Gtk.MessageType.ERROR);
+        content.add(new Gtk.Label("A file with the same name already exists!"));
+
+        this.set_titlebar(toolbar);
+        view_box.pack_start(main_stack, true, true);
+        // TODO: Pack/Unpack this as needed
+        //view_box.pack_start(secondary_stack, true, true);
+        view_overlay.add(view_box);
+        main_paned.pack1(list_box, false, true);
+        main_paned.pack2(view_overlay, false, true);
+        main_box.pack_start(main_paned, true, true);
+        this.add(main_box);
+    }
+
+    private void init_content()
+    {
+        menubutton   = new MenuButton();
+        undobutton   = new Button.from_icon_name("edit-undo-symbolic");
+        redobutton   = new Button.from_icon_name("edit-redo-symbolic");
+        openbutton   = new Button.from_icon_name("folder-open-symbolic");
+        nextbutton   = new Button.from_icon_name("go-next-symbolic");
+        backbutton   = new Button.from_icon_name("go-previous-symbolic");
+        skipbutton   = new Button.from_icon_name("view-refresh-symbolic");
+        deletebutton = new Button.from_icon_name("list-remove-symbolic");
+        batchbutton  = new ToggleButton();
+        open_pop   = new OpenFolderPopover(openbutton);
+        search     = new SearchEntry();
+        target_pop = new OpenFolderPopover(menubutton);
+
+        fullview     = new ImageFullView();
         default_view = new DefaultView();
-        empty_view = new EmptyView();
-        audio_view = new AudioView();
-        vidview = new VideoView();
-        web_view = new WebView();
+        empty_view   = new EmptyView();
+        audio_view   = new AudioView();
+        vidview      = new VideoView();
+        web_view     = new WebView();
         archive_view = new ArchiveView();
-        comic_view = new ComicView();
+        comic_view   = new ComicView();
         welcome_view = new WelcomeView();
 
-        current_view = welcome_view;
         chosen_view = empty_view;
 
-        // Init Structural Widgets
-        toolbar = new Gtk.HeaderBar();
-        status_bar = new Gtk.ActionBar();
-        panedview = new Gtk.Paned(Gtk.Orientation.HORIZONTAL);
-        settingsview = new Gtk.Box(Gtk.Orientation.VERTICAL, 5);
-        list_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 5);
-        // TODO: Consider making errorbar a class as well
-        errorbar = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
-        Gtk.Container content = errorbar.get_content_area();
-        container1 = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
-        view_overlay = new Gtk.Overlay();
-        control_box = new Gtk.ButtonBox(Gtk.Orientation.HORIZONTAL);
-        //control_revealer = new Gtk.Revealer();
-        //control_revealer.set_reveal_child(false);
-        Gtk.ScrolledWindow places_wrapper = new Gtk.ScrolledWindow(null, null);
 
-        places_data = new Gtk.TreeStore(4, typeof(string), typeof(string), typeof(bool), typeof(bool));
+        init_places_view();
+
+        search.set_placeholder_text("Filter...");
+        places_view.set_search_entry(search);
+
+        menubutton.direction = ArrowType.DOWN;
+        menubutton.set_image(new Image.from_icon_name("open-menu-symbolic", IconSize.SMALL_TOOLBAR));
+        undobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        undobutton.set_sensitive(false);
+        redobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        redobutton.set_sensitive(false);
+        nextbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
+        backbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
+        nextbutton.halign = Gtk.Align.END;
+        nextbutton.valign = Gtk.Align.CENTER;
+        nextbutton.margin = 18;
+        backbutton.halign = Gtk.Align.START;
+        backbutton.valign = Gtk.Align.CENTER;
+        backbutton.margin = 18;
+        skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        deletebutton.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION);
+        batchbutton.set_image(new Gtk.Image.from_icon_name("edit-select-all-symbolic", IconSize.BUTTON));
+        batchbutton.set_active (true);
+
+        toolbar.pack_start(openbutton);
+        toolbar.pack_start(undobutton);
+        toolbar.pack_start(redobutton);
+        toolbar.pack_end(menubutton);
+        control_link_box.add(skipbutton);
+        control_link_box.add(deletebutton);
+        control_box.add(batchbutton);
+        control_box.add(control_link_box);
+        view_overlay.add_overlay(nextbutton);
+        view_overlay.add_overlay(backbutton);
+        view_overlay.add_overlay(control_box);
+        main_stack.add_named(default_view, "default");
+        main_stack.add_named(fullview,     "image");
+        main_stack.add_named(empty_view,   "empty");
+        main_stack.add_named(audio_view,   "audio");
+        main_stack.add_named(vidview,      "video");
+        main_stack.add_named(web_view,     "web");
+        main_stack.add_named(archive_view, "archive");
+        main_stack.add_named(comic_view,   "comic");
+        main_stack.add_named(welcome_view, "welcome");
+        list_box.pack_start(search, false, false);
+        places_wrapper.add(places_view);
+        list_box.pack_start(places_wrapper, true, true);
+    }
+
+    private void init_places_view()
+    {
+        places_wrapper = new Gtk.ScrolledWindow(null, null);
+        places_data    = new Gtk.TreeStore(4, typeof(string), typeof(string), typeof(bool), typeof(bool));
+        places_filter  = new Gtk.TreeModelFilter(places_data, null);
+        places_view    = new Gtk.TreeView.with_model(places_filter);
+        add_pop        = new AddFolderPopover(places_view);
+        // TODO: Move this
+        CellRendererText name_renderer = new Gtk.CellRendererText();
+        Gtk.TreeViewColumn col_name = new Gtk.TreeViewColumn.with_attributes("Name", name_renderer, "text", 0, null);
+
         places_data.set_sort_column_id(0, Gtk.SortType.ASCENDING);
-        places_filter = new Gtk.TreeModelFilter(places_data, null);
         places_filter.set_visible_column(2);
-        places_view = new Gtk.TreeView.with_model(places_filter);
         places_view.enable_search = true;
         places_view.search_column = 0;
         places_view.set_headers_visible(false);
-        places_view.set_search_equal_func((model, column, key, iter) =>{
-            string name = "";
-            model.get(iter, 0, out name);
-            return !name.down().contains(key.down());
-        });
-        Gtk.CellRendererText name_renderer = new Gtk.CellRendererText();
-        name_renderer.editing_canceled.connect(() => {
+        name_renderer.editing_canceled.connect(() =>
+        {
             name_renderer.editable = false;
         });
-        name_renderer.edited.connect((path, text) => {
+        name_renderer.edited.connect((path, text) =>
+        {
             Gtk.TreeIter iter;
             string data_path = "";
             string old_name = "";
@@ -143,12 +293,12 @@ public class MainWindow : Gtk.ApplicationWindow
             }
             name_renderer.editable = false;
         });
-        Gtk.TreeViewColumn col_name = new Gtk.TreeViewColumn.with_attributes("Name", name_renderer, "text", 0, null);
         places_view.insert_column(col_name, -1);
         SimpleActionGroup branch_group = new SimpleActionGroup();
         SimpleAction act_hide = new SimpleAction("hide", null);
         act_hide.set_enabled(true);
-        act_hide.activate.connect(() => {
+        act_hide.activate.connect(() =>
+        {
             Gtk.TreePath path = null;
             Gtk.TreeViewColumn column;
             Gtk.TreeIter iter;
@@ -162,7 +312,8 @@ public class MainWindow : Gtk.ApplicationWindow
         branch_group.add_action(act_hide);
         SimpleAction act_rename = new SimpleAction("rename", null);
         act_rename.set_enabled(true);
-        act_rename.activate.connect(() => {
+        act_rename.activate.connect(() =>
+        {
             Gtk.TreePath path = null;
             Gtk.TreeViewColumn column;
             places_view.get_cursor(out path, out column);
@@ -173,8 +324,75 @@ public class MainWindow : Gtk.ApplicationWindow
             }
         });
         branch_group.add_action(act_rename);
+        SimpleAction act_new = new SimpleAction("add", null);
+        act_new.set_enabled(true);
+        act_new.activate.connect(() =>
+        {
+            Gtk.TreePath path = null;
+            Gtk.TreeViewColumn column;
+            places_view.get_cursor(out path, out column);
+            if(path != null) {
+                Gdk.Rectangle rect;
+                places_view.get_cell_area(path, column, out rect);
+                add_pop.set_pointing_to(rect);
+                add_pop.show_all();
+            }
+        });
+        branch_group.add_action(act_new);
         places_view.insert_action_group("branch", branch_group);
-        places_view.row_activated.connect((path, column) => {
+        GLib.Menu places_menu_model = new GLib.Menu();
+        places_menu_model.append("Hide Branch", "branch.hide");
+        places_menu_model.append("Rename Branch", "branch.rename");
+        places_menu_model.append("New Folder", "branch.add");
+        places_menu = new Gtk.Menu.from_model(places_menu_model);
+        places_menu.attach_to_widget(places_view, null);
+        places_view.set_events(Gdk.EventMask.BUTTON_PRESS_MASK);
+    }
+
+    private void connect_signals()
+    {
+        this.destroy.connect(on_exit);
+
+        main_stack.size_allocate.connect(resizeView);
+        //secondary_stack.size_allocate.connect(resizeView);
+        errorbar.response.connect(respond);
+
+        undobutton.clicked.connect(() =>
+        {
+            App.undo_list.undo();
+            if(App.undo_list.previous_count == 0)
+                undobutton.set_sensitive(false);
+            redobutton.set_sensitive(true);
+        });
+        redobutton.clicked.connect(() =>
+        {
+            App.undo_list.redo();
+            if(App.undo_list.next_count == 0)
+                redobutton.set_sensitive(false);
+            undobutton.set_sensitive(true);
+        });
+        openbutton.clicked.connect(() => {open_pop.show_all();});
+        open_pop.file_chosen.connect((file) => { addDir(file, null); });
+        nextbutton.clicked.connect(() => { go_next(); });
+        backbutton.clicked.connect(() => { go_prev(); });
+        skipbutton.clicked.connect(loadFile);
+        deletebutton.clicked.connect(removeFile);
+        batchbutton.toggled.connect(swapBatch);
+
+        search.search_changed.connect(() =>
+        {
+            traversal_filter.begin(search.text);
+        });
+        search.activate.connect(() =>
+        {
+            Gtk.TreePath path = null;
+            Gtk.TreeViewColumn column;
+            places_view.get_cursor(out path, out column);
+            if(path != null)
+                places_view.row_activated(path, column);
+        });
+        places_view.row_activated.connect((path, column) =>
+        {
             Gtk.TreeIter iter;
             Gtk.TreePath child_path = places_filter.convert_path_to_child_path(path);
             places_data.get_iter(out iter, child_path);
@@ -208,217 +426,68 @@ public class MainWindow : Gtk.ApplicationWindow
             else
                 resetView();
         });
-        Menu places_menu_model = new Menu();
-        places_menu_model.append("Hide Branch", "branch.hide");
-        places_menu_model.append("Rename Branch", "branch.rename");
-        places_menu = new Gtk.Menu.from_model(places_menu_model);
-        places_menu.attach_to_widget(places_view, null);
-        places_view.set_events(Gdk.EventMask.BUTTON_PRESS_MASK);
-        places_view.button_press_event.connect((event) => {
+        places_view.button_press_event.connect((event) =>
+        {
             if(event.button == 3) {
                 places_view.popup_menu();
             }
             return false;
         });
-        places_view.popup_menu.connect(() => {
+        places_view.popup_menu.connect(() =>
+        {
             places_menu.popup(null, null, null, 0, Gtk.get_current_event_time());
             return false;
         });
-
-        toolbar.set_title("Sorthelper");
-        toolbar.set_subtitle("Completion: ");
-        toolbar.set_show_close_button(true);
-        toolbar.set_decoration_layout("menu:close");
-        errorbar.set_show_close_button(true);
-        errorbar.set_response_sensitive(1, true);
-        errorbar.set_response_sensitive(2, true);
-        errorbar.set_message_type(Gtk.MessageType.ERROR);
-        content.add(new Gtk.Label("A file with the same name already exists!"));
-        errorbar.response.connect(respond);
-        // TODO: This function does nothing, but we should add resizing functions to each view class
-        panedview.size_allocate.connect(resizeView);
-        panedview.set_position(200);
-        view_overlay.set_events(Gdk.EventMask.POINTER_MOTION_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK);
-        control_box.valign = Gtk.Align.CENTER;
-
-        // Init Display Widgets
-        skipbutton = new Gtk.Button.from_icon_name("go-next-symbolic");
-        deletebutton = new Gtk.Button.from_icon_name("edit-delete-symbolic");
-        deletebutton.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION);
-        newbutton = new Gtk.Button.from_icon_name("document-new-symbolic");
-        target_pop = new OpenFolderPopover(newbutton);
-        addbutton = new Gtk.Button.from_icon_name("folder-new-symbolic");
-        add_pop = new AddFolderPopover(addbutton);
-        openbutton = new Gtk.Button.from_icon_name("folder-open-symbolic");
-        open_pop = new OpenFolderPopover(openbutton);
-        undobutton = new Gtk.Button.from_icon_name("edit-undo-symbolic");
-        redobutton = new Gtk.Button.from_icon_name("edit-redo-symbolic");
-        errorbutton = new Gtk.Button.from_icon_name("emblem-important-symbolic");
-
-        nextbutton = new Gtk.Button.from_icon_name("go-next-symbolic");
-        nextbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
-        backbutton = new Gtk.Button.from_icon_name("go-previous-symbolic");
-        backbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
-        batchbutton = new Gtk.ToggleButton();
-        autoreloadbutton = new Gtk.CheckButton.with_label("Load the last sorted folder on startup");
-        autoreloadbutton.set_active(App.auto_reload);
-
-        file_label = new Gtk.Label("Stuff goes here");
-        search = new Gtk.SearchEntry();
-
-        skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        skipbutton.clicked.connect(loadFile);
-        deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        deletebutton.clicked.connect(removeFile);
-        newbutton.clicked.connect(() => {target_pop.show_all();});
-        addbutton.clicked.connect(() => {add_pop.show_all();});
-        openbutton.clicked.connect(() => {open_pop.show_all();});
-        add_pop.file_created.connect(build_directory);
-        open_pop.file_chosen.connect((file) => {
-            addDir(file, null);
+        places_view.set_search_equal_func((model, column, key, iter) =>
+        {
+            string name = "";
+            model.get(iter, 0, out name);
+            return !name.down().contains(key.down());
         });
+
+        add_pop.file_created.connect(build_directory);
+
         target_pop.file_chosen.connect((file) => {
             App.item_list.load_folder(file);
             undobutton.set_sensitive(false);
             redobutton.set_sensitive(false);
             loadFile();
         });
-        undobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        undobutton.set_sensitive(false);
-        undobutton.clicked.connect(()=>{
-            App.undo_list.undo();
-            if(App.undo_list.previous_count == 0)
-                undobutton.set_sensitive(false);
-            redobutton.set_sensitive(true);
-        });
-        redobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        redobutton.set_sensitive(false);
-        redobutton.clicked.connect(()=>{
-            App.undo_list.redo();
-            if(App.undo_list.next_count == 0)
-                redobutton.set_sensitive(false);
-            undobutton.set_sensitive(true);
-        });
-        errorbutton.set_sensitive(false);
-        //control_revealer.add(control_box);
-        //control_revealer.set_transition_type(Gtk.RevealerTransitionType.CROSSFADE);
-        nextbutton.clicked.connect(() => { go_next(); });
-        nextbutton.halign = Gtk.Align.END;
-        nextbutton.valign = Gtk.Align.CENTER;
-        nextbutton.margin = 10;
-        nextbutton.enter_notify_event.connect((e) =>{
-            overlay_hover = true;
-            return false;
-        });
-        nextbutton.leave_notify_event.connect((e) =>{
-            overlay_hover = false;
-            return false;
-        });
-        backbutton.clicked.connect(() => { go_prev(); });
-        backbutton.halign = Gtk.Align.START;
-        backbutton.valign = Gtk.Align.CENTER;
-        backbutton.margin = 10;
-        backbutton.enter_notify_event.connect((e) =>{
-            overlay_hover = true;
-            return false;
-        });
-        backbutton.leave_notify_event.connect((e) =>{
-            overlay_hover = false;
-            return false;
-        });
-        //batchbutton.set_label("Batch Mode");
-        batchbutton.set_image(new Gtk.Image.from_icon_name("edit-select-all", Gtk.IconSize.SMALL_TOOLBAR));
-        batchbutton.set_active (true);
-        batchbutton.toggled.connect(swapBatch);
+    }
 
-        GLib.Menu main_menu = new GLib.Menu();
+    private void add_actions()
+    {
+        GLib.SimpleAction new_action = new GLib.SimpleAction("new", null);
+        new_action.activate.connect(() =>
+        {
+            target_pop.show_all();
+        });
+
+        GLib.SimpleAction settings_action = new GLib.SimpleAction("settings", null);
+        settings_action.set_enabled(false);
+        settings_action.activate.connect(() =>
+        {
+            // TODO: Reimplement this
+            //main_box.remove(panedview);
+            //main_box.pack_end(settingsview, true, true);
+            settings_action.set_enabled(false);
+            //autoreloadbutton.set_active(App.auto_reload);
+            main_box.show_all();
+        });
+
+        this.add_action(new_action);
+        this.add_action(settings_action);
+    }
+
+    private void init_menus()
+    {
+        main_menu = new GLib.Menu();
+        GLib.MenuItem new_item = new GLib.MenuItem("Sort New", "win.new");
+        main_menu.append_item(new_item);
         GLib.MenuItem settings_item = new GLib.MenuItem("Settings", "win.settings");
         main_menu.append_item(settings_item);
-        GLib.SimpleAction settings_action = new GLib.SimpleAction("settings", null);
-        settings_action.set_enabled(true);
-        settings_action.activate.connect(() => {
-            container1.remove(panedview);
-            container1.pack_end(settingsview, true, true);
-            settings_action.set_enabled(false);
-            autoreloadbutton.set_active(App.auto_reload);
-            container1.show_all();
-        });
-        this.add_action(settings_action);
-        menubutton = new Gtk.MenuButton();
-        menubutton.direction = Gtk.ArrowType.UP;
-        menubutton.set_image(new Gtk.Image.from_icon_name("open-menu-symbolic", Gtk.IconSize.SMALL_TOOLBAR));
+
         menubutton.set_menu_model(main_menu);
-
-        settings_confirm_buttons = new Gtk.HButtonBox();
-        Gtk.Button settings_cancel_button = new Gtk.Button.with_label("Cancel");
-        settings_cancel_button.clicked.connect(() => {
-            container1.remove(settingsview);
-            container1.pack_end(panedview, true, true);
-            settings_action.set_enabled(true);
-            container1.show_all();
-        });
-        Gtk.Button settings_confirm_button = new Gtk.Button.with_label("Confirm");
-        settings_confirm_button.clicked.connect(() => {
-            App.app_settings.set_boolean("open-last", autoreloadbutton.get_active());
-            container1.remove(settingsview);
-            container1.pack_end(panedview, true, true);
-            settings_action.set_enabled(true);
-            container1.show_all();
-        });
-        settings_confirm_buttons.add(settings_cancel_button);
-        settings_confirm_buttons.add(settings_confirm_button);
-
-        search.set_placeholder_text("Filter...");
-        search.search_changed.connect(() => {
-            traversal_filter.begin(search.text);
-        });
-        places_view.set_search_entry(search);
-        search.activate.connect(() => {
-            Gtk.TreePath path = null;
-            Gtk.TreeViewColumn column;
-            places_view.get_cursor(out path, out column);
-            if(path != null)
-                places_view.row_activated(path, column);
-        });
-
-        // Build Structure
-        this.set_titlebar(toolbar);
-        this.window_position = Gtk.WindowPosition.CENTER;
-        this.set_default_size (800, 600);
-        this.destroy.connect(on_exit);
-
-        toolbar.pack_start(newbutton);
-        toolbar.pack_start(skipbutton);
-        toolbar.pack_start(batchbutton);
-        toolbar.pack_end(deletebutton);
-        toolbar.pack_end(redobutton);
-        toolbar.pack_end(undobutton);
-        toolbar.pack_end(errorbutton);
-
-        view_overlay.add(current_view);
-        //view_overlay.add_overlay(control_box);
-        view_overlay.add_overlay(backbutton);
-        view_overlay.add_overlay(nextbutton);
-        //control_box.add(backbutton);
-        //control_box.add(nextbutton);
-
-        list_box.pack_start(search, false, false);
-        places_wrapper.add(places_view);
-        list_box.pack_start(places_wrapper, true, true);
-        status_bar.set_center_widget(file_label);
-        status_bar.pack_start(addbutton);
-        status_bar.pack_start(openbutton);
-        status_bar.pack_end(menubutton);
-
-        panedview.pack1(list_box, false, true);
-        panedview.pack2(view_overlay, true, true);
-        settingsview.pack_start(autoreloadbutton, true, true);
-        settingsview.pack_end(settings_confirm_buttons, false, false);
-        container1.pack_end(status_bar, false, false);
-        container1.pack_end(panedview, true, true);
-
-        this.add(container1);
-        this.show_all();
     }
     
     void respond (int response_id)
@@ -427,32 +496,28 @@ public class MainWindow : Gtk.ApplicationWindow
             replaceFile();
         if(response_id == 2)
             removeFile();
-        if(errorbar.get_parent() == container1) {
-            container1.remove(errorbar);
-            container1.show_all();
+        if(errorbar.get_parent() == main_box) {
+            main_box.remove(errorbar);
+            main_box.show_all();
         }
     }
-    
-    public void loadDirItems()
+
+    private inline View current_view()
     {
-        //default_item.clear();
-        //libitem = new DirItem.FromFile(File.new_for_path ("/home/df458/Documents/.Collections/.lib"));
-        //default_item.add(libitem);
-        //libitem.expand_with_parents();
-        addDir(File.new_for_path("/home/df458/Documents/.Collections/.lib"), null);
+        return (View)main_stack.get_visible_child();
     }
     
     public void resizeView()
     {
-        current_view.resize();
+        current_view().resize();
     }
 
     public void go_next()
     {
         ++selected;
-        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
-        current_view.load(App.to_display[selected]);
-        current_view.display();
+        toolbar.set_subtitle(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
+        current_view().load(App.to_display[selected]);
+        current_view().display();
         backbutton.sensitive = true;
         if(selected >= App.to_display.size - 1) {
             nextbutton.sensitive = false;
@@ -463,9 +528,9 @@ public class MainWindow : Gtk.ApplicationWindow
     public void go_prev()
     {
         --selected;
-        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
-        current_view.load(App.to_display[selected]);
-        current_view.display();
+        toolbar.set_subtitle(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
+        current_view().load(App.to_display[selected]);
+        current_view().display();
         nextbutton.sensitive = true;
         nextbutton.sensitive = true;
         if(selected <= 0) {
@@ -480,16 +545,16 @@ public class MainWindow : Gtk.ApplicationWindow
         nextbutton.sensitive = false;
         backbutton.sensitive = false;
         search.grab_focus();
-        if(errorbar.get_parent() == container1) {
-            container1.remove(errorbar);
-            container1.show_all();
+        if(errorbar.get_parent() == main_box) {
+            main_box.remove(errorbar);
+            main_box.show_all();
         }
         if(App.item_list.is_empty()) {
             toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
             if(App.undo_list.previous_count > 0)
                 undobutton.set_sensitive(true);
             redobutton.set_sensitive(App.undo_list.next_count > 0);
-            set_content(empty_view);
+            main_stack.set_visible_child_name("empty");
             return;
         }
 
@@ -506,9 +571,9 @@ public class MainWindow : Gtk.ApplicationWindow
     public void replaceFile()
     {
         search.grab_focus();
-        if(errorbar.get_parent() == container1) {
-            container1.remove(errorbar);
-            container1.show_all();
+        if(errorbar.get_parent() == main_box) {
+            main_box.remove(errorbar);
+            main_box.show_all();
         }
         if(App.batch_mode) {
             stdout.printf("Replacing %d images...\n", App.to_display.size);
@@ -548,9 +613,9 @@ public class MainWindow : Gtk.ApplicationWindow
     public void removeFile()
     {
         search.grab_focus();
-        if(errorbar.get_parent() == container1) {
-            container1.remove(errorbar);
-            container1.show_all();
+        if(errorbar.get_parent() == main_box) {
+            main_box.remove(errorbar);
+            main_box.show_all();
         }
         if(App.batch_mode) {
             stdout.printf("Removing %d images...\n", App.to_display.size);
@@ -594,17 +659,15 @@ public class MainWindow : Gtk.ApplicationWindow
         if(App.undo_list.previous_count > 0)
             undobutton.set_sensitive(true);
         redobutton.set_sensitive(App.undo_list.next_count > 0);
-        //control_revealer.set_reveal_child(false);
         if(App.to_display.size > 1) {
             nextbutton.sensitive = true;
-            //control_revealer.set_reveal_child(true);
         }
         chosen_view.unload();
         if(App.to_display.is_empty) {
-            set_content(empty_view);
-             file_label.set_text("");
+            main_stack.set_visible_child_name("empty");
+            toolbar.set_subtitle("");
         } else {
-            file_label.set_text(App.to_display[0].get_basename() + (App.to_display.size > 1 ? " (" + "1" + "/" + App.to_display.size.to_string() + ")" : ""));
+            toolbar.set_subtitle(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
             chosen_view = default_view;
             try {
                 string filetype = App.to_display[0].query_info("standard::content-type", 0, null).get_content_type();
@@ -651,7 +714,7 @@ public class MainWindow : Gtk.ApplicationWindow
                 stderr.printf("Error getting mimetype: %s\n", e.message);
             }
             chosen_view.load(App.to_display[0]);
-            set_content(chosen_view);
+            main_stack.set_visible_child(chosen_view);
             chosen_view.display();
         }
     }
@@ -660,27 +723,15 @@ public class MainWindow : Gtk.ApplicationWindow
     {
         if(selected >= App.to_display.size)
             selected = App.to_display.size - 1;
-        file_label.set_text(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
-        current_view.load(App.to_display[selected]);
-        current_view.display();
-        //control_revealer.set_reveal_child(App.to_display.size > 1);
+        toolbar.set_subtitle(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
+        current_view().load(App.to_display[selected]);
+        current_view().display();
         if(selected >= App.to_display.size - 1) {
             nextbutton.sensitive = false;
         }
         if(selected <= 0) {
             backbutton.sensitive = false;
         }
-        this.show_all();
-    }
-
-    public void set_content(View widget)
-    {
-        int pos = panedview.get_position();
-        view_overlay.remove(current_view);
-        panedview.set_position(0);
-        view_overlay.add(widget);
-        current_view = widget;
-        panedview.set_position(pos);
         this.show_all();
     }
 
@@ -704,22 +755,20 @@ public class MainWindow : Gtk.ApplicationWindow
 
     public void move_failed(Motion err)
     {
-        container1.pack_end(errorbar, false, false);
+        main_box.pack_end(errorbar, false, false);
         failed_last = true;
         failure_list = err;
-        errorbutton.set_sensitive(true);
         // TODO: Display errors
         show_all();
     }
 
     public void move_failed_single(string dest)
     {
-        container1.pack_end(errorbar, false, false);
+        main_box.pack_end(errorbar, false, false);
         failed_last = true;
         failure_list = Motion();
         failure_list.new_position = new ArrayList<File>();
         failure_list.old_folder = new ArrayList<string>();
-        errorbutton.set_sensitive(true);
         foreach(File f in App.to_display) {
             if(f == current_file)
                 failure_list.old_folder.add(dest);
@@ -735,11 +784,6 @@ public class MainWindow : Gtk.ApplicationWindow
     {
         chosen_view.unload();
         App.save_last();
-    }
-
-    public bool itemFilter(Granite.Widgets.SourceList.Item item)
-    {
-        return item is BaseItem || ((DirItem)item).has(search.text);
     }
 
     public void addDir(File f, Gtk.TreeIter? parent_iter)
