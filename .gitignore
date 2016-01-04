@@ -1,3 +1,6 @@
 *.un~
 build
 sorthelper
+
+*.glade~
+*.glade#
