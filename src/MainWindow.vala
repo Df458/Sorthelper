@@ -390,6 +390,8 @@ public class MainWindow : ApplicationWindow
                 loadFile();
             else
                 resetView();
+
+            search.grab_focus();
         });
         places_view.button_press_event.connect((event) =>
         {
