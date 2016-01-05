@@ -19,6 +19,7 @@ public class MainWindow : ApplicationWindow
     private Box   control_link_box;
     private Stack main_stack;
     private Stack secondary_stack;
+    private Stack mode_stack;
 
     private MenuButton   menubutton;
     private Button       undobutton;
@@ -29,22 +30,6 @@ public class MainWindow : ApplicationWindow
     private Button       deletebutton;
     private Button       openbutton;
     private ToggleButton batchbutton;
-    /*
-    private Gtk.Box settingsview;
-    private Gtk.CheckButton autoreloadbutton;
-    private Gtk.ButtonBox settings_confirm_buttons;
-
-    private Gtk.Button addbutton;
-    private Gtk.Button newbutton;
-    private Gtk.Button openbutton;
-    private Gtk.Button errorbutton;
-    private OpenFolderPopover target_pop;
-    public string current_image_location;
-    private Gtk.ActionBar status_bar;
-    private Gtk.Label file_label;
-    private bool overlay_hover = false;
-
-    private Gtk.ButtonBox control_box;*/
 
     private Motion failure_list;
     private bool failed_last = false;
@@ -60,6 +45,8 @@ public class MainWindow : ApplicationWindow
     private WelcomeView   welcome_view;
     private View          chosen_view;
     private Overlay       view_overlay;
+
+    private SettingsPane  settings;
 
     private InfoBar errorbar;
 
@@ -97,35 +84,6 @@ public class MainWindow : ApplicationWindow
         init_menus();
 
         this.show_all();
-        /*
-        settingsview = new Gtk.Box(Gtk.Orientation.VERTICAL, 5);
-
-        autoreloadbutton = new Gtk.CheckButton.with_label("Load the last sorted folder on startup");
-        autoreloadbutton.set_active(App.auto_reload);
-        errorbutton.set_sensitive(false);
-
-        settings_confirm_buttons = new Gtk.HButtonBox();
-        Gtk.Button settings_cancel_button = new Gtk.Button.with_label("Cancel");
-        settings_cancel_button.clicked.connect(() => {
-            main_box.remove(settingsview);
-            main_box.pack_end(panedview, true, true);
-            settings_action.set_enabled(true);
-            main_box.show_all();
-        });
-        Gtk.Button settings_confirm_button = new Gtk.Button.with_label("Confirm");
-        settings_confirm_button.clicked.connect(() => {
-            App.app_settings.set_boolean("open-last", autoreloadbutton.get_active());
-            main_box.remove(settingsview);
-            main_box.pack_end(panedview, true, true);
-            settings_action.set_enabled(true);
-            main_box.show_all();
-        });
-        settings_confirm_buttons.add(settings_cancel_button);
-        settings_confirm_buttons.add(settings_confirm_button);
-
-        settingsview.pack_start(autoreloadbutton, true, true);
-        settingsview.pack_end(settings_confirm_buttons, false, false);
-        */
     }
 
     private void init_structure()
@@ -137,10 +95,12 @@ public class MainWindow : ApplicationWindow
         list_box         = new Box(Orientation.VERTICAL, 6);
         control_box      = new Box(Orientation.HORIZONTAL, 6);
         control_link_box = new Box(Orientation.HORIZONTAL, 0);
+        mode_stack       = new Stack();
         main_stack       = new Stack();
         view_overlay     = new Overlay();
-        secondary_stack = new Stack();
-        errorbar        = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
+        secondary_stack  = new Stack();
+        errorbar         = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
+        settings         = new SettingsPane();
 
         toolbar.set_title("Sorthelper");
         toolbar.set_show_close_button(true);
@@ -168,7 +128,10 @@ public class MainWindow : ApplicationWindow
         view_overlay.add(view_box);
         main_paned.pack1(list_box, false, true);
         main_paned.pack2(view_overlay, false, true);
-        main_box.pack_start(main_paned, true, true);
+        mode_stack.add_named(main_paned, "sort");
+        mode_stack.add_named(settings, "settings");
+        mode_stack.set_visible_child(main_paned);
+        main_box.pack_start(mode_stack, true, true);
         this.add(main_box);
     }
 
@@ -202,6 +165,9 @@ public class MainWindow : ApplicationWindow
 
         init_places_view();
 
+        search.margin_top = 6;
+        search.margin_left = 6;
+        search.margin_right = 6;
         search.set_placeholder_text("Filter...");
         places_view.set_search_entry(search);
 
@@ -354,7 +320,6 @@ public class MainWindow : ApplicationWindow
         this.destroy.connect(on_exit);
 
         main_stack.size_allocate.connect(resizeView);
-        //secondary_stack.size_allocate.connect(resizeView);
         errorbar.response.connect(respond);
 
         undobutton.clicked.connect(() =>
@@ -464,15 +429,18 @@ public class MainWindow : ApplicationWindow
         });
 
         GLib.SimpleAction settings_action = new GLib.SimpleAction("settings", null);
-        settings_action.set_enabled(false);
         settings_action.activate.connect(() =>
         {
-            // TODO: Reimplement this
-            //main_box.remove(panedview);
-            //main_box.pack_end(settingsview, true, true);
+            settings.sync();
+            mode_stack.set_visible_child(settings);
             settings_action.set_enabled(false);
-            //autoreloadbutton.set_active(App.auto_reload);
             main_box.show_all();
+        });
+
+        settings.done.connect(() =>
+        {
+            mode_stack.set_visible_child(main_paned);
+            settings_action.set_enabled(true);
         });
 
         this.add_action(new_action);
