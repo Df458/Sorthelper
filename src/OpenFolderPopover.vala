@@ -12,9 +12,10 @@ public class OpenFolderPopover : Gtk.Popover
 
     public OpenFolderPopover(Gtk.Widget target)
     {
-        layout_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+        layout_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 6);
         folder_selector = new Gtk.FileChooserButton("Add a Folder", Gtk.FileChooserAction.SELECT_FOLDER);
         confirm_button = new Gtk.Button.with_label("Open");
+        layout_box.margin = 12;
 
         confirm_button.clicked.connect(() => {
             file_chosen(folder_selector.get_file());

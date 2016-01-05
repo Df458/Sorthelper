@@ -12,9 +12,10 @@ public class AddFolderPopover : Gtk.Popover
 
     public AddFolderPopover(Gtk.Widget target)
     {
-        layout_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+        layout_box = new Gtk.Box(Gtk.Orientation.VERTICAL, 6);
         name_input = new Gtk.Entry();
         confirm_button = new Gtk.Button.with_label("Add...");
+        layout_box.margin = 12;
 
         name_input.editable = true;
         name_input.activate.connect(() => {

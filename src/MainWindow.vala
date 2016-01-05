@@ -393,7 +393,9 @@ public class MainWindow : ApplicationWindow
         });
         places_view.button_press_event.connect((event) =>
         {
-            if(event.button == 3) {
+            TreePath? path;
+            places_view.get_cursor(out path, null);
+            if(event.button == 3 && path != null) {
                 places_view.popup_menu();
             }
             return false;
