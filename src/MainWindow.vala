@@ -189,6 +189,7 @@ public class MainWindow : ApplicationWindow
         deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         deletebutton.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION);
         batchbutton.set_image(new Gtk.Image.from_icon_name("edit-select-all-symbolic", IconSize.BUTTON));
+        batchbutton.add_accelerator("clicked", accel, 'b', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         batchbutton.set_active (true);
 
         toolbar.pack_start(openbutton);
