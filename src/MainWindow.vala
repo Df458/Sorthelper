@@ -168,15 +168,20 @@ public class MainWindow : ApplicationWindow
         search.margin_top = 6;
         search.margin_left = 6;
         search.margin_right = 6;
-        search.set_placeholder_text("Filter...");
+        search.set_placeholder_text("Filter\u2026");
+        search.set_tooltip_text("Filter\u2026");
         places_view.set_search_entry(search);
 
+        openbutton.set_tooltip_text("Add Directories\u2026");
         menubutton.direction = ArrowType.DOWN;
         menubutton.set_image(new Image.from_icon_name("open-menu-symbolic", IconSize.SMALL_TOOLBAR));
+        undobutton.set_tooltip_text("Main Menu");
         undobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         undobutton.set_sensitive(false);
+        undobutton.set_tooltip_text("Undo");
         redobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         redobutton.set_sensitive(false);
+        redobutton.set_tooltip_text("Redo");
         nextbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
         backbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
         nextbutton.halign = Gtk.Align.END;
@@ -185,12 +190,17 @@ public class MainWindow : ApplicationWindow
         backbutton.halign = Gtk.Align.START;
         backbutton.valign = Gtk.Align.CENTER;
         backbutton.margin = 18;
+        nextbutton.set_tooltip_text("Next File");
+        backbutton.set_tooltip_text("Previous File");
         skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
+        skipbutton.set_tooltip_text("Skip This Group");
         deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         deletebutton.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION);
+        skipbutton.set_tooltip_text("Delete");
         batchbutton.set_image(new Gtk.Image.from_icon_name("edit-select-all-symbolic", IconSize.BUTTON));
         batchbutton.add_accelerator("clicked", accel, 'b', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         batchbutton.set_active (true);
+        batchbutton.set_tooltip_text("Batch Mode");
 
         toolbar.pack_start(openbutton);
         toolbar.pack_start(undobutton);
