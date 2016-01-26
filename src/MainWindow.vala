@@ -187,9 +187,11 @@ public class MainWindow : ApplicationWindow
         nextbutton.halign = Gtk.Align.END;
         nextbutton.valign = Gtk.Align.CENTER;
         nextbutton.margin = 18;
+        nextbutton.add_accelerator("clicked", accel, Gdk.Key.Right, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         backbutton.halign = Gtk.Align.START;
         backbutton.valign = Gtk.Align.CENTER;
         backbutton.margin = 18;
+        backbutton.add_accelerator("clicked", accel, Gdk.Key.Left, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
         nextbutton.set_tooltip_text("Next File");
         backbutton.set_tooltip_text("Previous File");
         skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
