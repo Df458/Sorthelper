@@ -18,26 +18,6 @@ public class ItemList
         indices = new HashMap<File, int>();
     }
 
-    //public ItemList.from_folder(File infile)
-    //{
-        //origin_folder = infile;
-        //random = new GLib.Rand();
-        //files = new ArrayList<File>();
-        //indices = new HashMap<File, int>();
-        //try {
-            //var enumerator = infile.enumerate_children (FileAttribute.STANDARD_NAME, 0);
-
-            //FileInfo file_info;
-            //while ((file_info = enumerator.next_file ()) != null) {
-                //files.add(enumerator.get_child(file_info));
-            //}
-        //}catch(GLib.Error e){
-            //stderr.printf(e.message);
-        //}
-        //files.sort(alphasort);
-        //orig_size = files.size;
-    //}
-
     public void load_folder(File infile)
     {
         files.clear();

@@ -2,12 +2,10 @@ using GLib;
 using Gee;
 namespace SortHelper
 {
-	public class WelcomeView : View, Granite.Widgets.Welcome
+    [GtkTemplate (ui = "/org/df458/sorthelper/WelcomeView.ui")]
+	public class WelcomeView : View, Gtk.Box
     {
-        public WelcomeView()
-        {
-            base("Welcome", "Select a folder above to begin sorting");
-        }
+        public WelcomeView() {}
 
         public bool load(File infile)
         {

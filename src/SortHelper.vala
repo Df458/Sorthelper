@@ -4,7 +4,7 @@ using GLib;
 using Gee;
 namespace SortHelper
 {
-public class App : Granite.Application
+public class App : Gtk.Application
 {
     
     private static App _instance;
@@ -21,24 +21,24 @@ public class App : Granite.Application
     public static ArrayList<File> to_display;
     public static ItemList item_list;
     public static UndoList undo_list;
-    public static bool batch_mode = true;
+    public bool batch_mode { get; set; default = true; }
     public static bool auto_reload = false;
     public static string last_dest = "";
     public static GLib.Settings app_settings;
     
     construct
     {
-        program_name = "SortHelper";
-        exec_name = "sorthelper";
-        app_years = "2014";
-        //app_icon = "singularity-icon";
-        //app_launcher = "SortHelper.desktop";
-        build_version = "0.0.1";
-        application_id = "org.sorthelper";
-        about_authors = {"Hugues Ross <hugues.ross@gmail.com>", null};
-        about_artists = {"Hugues Ross <hugues.ross@gmail.com>", null};
-        about_comments = "Simple file sorting helper app";
-        about_license_type = License.GPL_3_0;
+        /* program_name = "SortHelper"; */
+        /* exec_name = "sorthelper"; */
+        /* app_years = "2014"; */
+        /* //app_icon = "singularity-icon"; */
+        /* //app_launcher = "SortHelper.desktop"; */
+        /* build_version = "0.0.1"; */
+        /* application_id = "org.sorthelper"; */
+        /* about_authors = {"Hugues Ross <hugues.ross@gmail.com>", null}; */
+        /* about_artists = {"Hugues Ross <hugues.ross@gmail.com>", null}; */
+        /* about_comments = "Simple file sorting helper app"; */
+        /* about_license_type = License.GPL_3_0; */
         _instance = this;
     }
     
@@ -53,6 +53,11 @@ public class App : Granite.Application
             }
             item_list = new ItemList();
             undo_list = new UndoList();
+
+            add_action (new PropertyAction ("batch", this, "batch_mode"));
+
+            set_accels_for_action("win.skip", { "<ctrl>s" });
+            set_accels_for_action("app.batch", { "<ctrl>b" });
 
             main_window = new MainWindow();
             main_window.set_application(this);

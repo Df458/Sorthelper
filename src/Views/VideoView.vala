@@ -1,10 +1,10 @@
 namespace SortHelper
 {
+    [GtkTemplate (ui = "/org/df458/sorthelper/VideoView.ui")]
     public class VideoView : View, Gtk.Box
     {
-        Gtk.Toolbar toolbar;
-        Gtk.ToolButton play_pause_button;
-        Gtk.DrawingArea area;
+        [GtkChild]
+        Gtk.DrawingArea video_area;
         Gst.Element src;
         bool prepared = false;
         uint *handle;
@@ -12,28 +12,7 @@ namespace SortHelper
 
         public VideoView()
         {
-            this.orientation = Gtk.Orientation.VERTICAL;
             src = Gst.ElementFactory.make("playbin", "player");
-
-            area = new Gtk.DrawingArea();
-            area.realize.connect(() => {
-                handle = (uint*)((Gdk.X11.Window)area.get_window()).get_xid();
-            });
-
-            toolbar = new Gtk.Toolbar();
-            play_pause_button = new Gtk.ToolButton(new Gtk.Image.from_icon_name("media-playback-start", Gtk.IconSize.SMALL_TOOLBAR), "Play/Pause");
-            play_pause_button.clicked.connect(() => {
-                Gst.State state;
-                src.get_state(out state, null, Gst.CLOCK_TIME_NONE);
-                if(state == Gst.State.READY || state == Gst.State.PAUSED)
-                    src.set_state(Gst.State.PLAYING);
-                else
-                    src.set_state(Gst.State.PAUSED);
-            });
-            toolbar.insert(play_pause_button, 0);
-
-            this.pack_start(area, true, true);
-            this.pack_end(toolbar, false, false);
         }
 
         public void display()
@@ -65,6 +44,29 @@ namespace SortHelper
         public void unload()
         {
             src.set_state(Gst.State.NULL);
+        }
+
+        [GtkCallback]
+        private void play_toggled()
+        {
+            Gst.State state;
+            src.get_state(out state, null, Gst.CLOCK_TIME_NONE);
+            if(state == Gst.State.READY || state == Gst.State.PAUSED)
+                src.set_state(Gst.State.PLAYING);
+            else
+                src.set_state(Gst.State.PAUSED);
+        }
+
+        [GtkCallback]
+        private void volume_changed()
+        {
+            // TODO
+        }
+
+        [GtkCallback]
+        private void prepare_xid()
+        {
+            handle = (uint*)((Gdk.X11.Window)video_area.get_window()).get_xid();
         }
     }
 }

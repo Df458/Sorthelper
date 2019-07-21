@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<glade-catalog name="sorthelper" library="sorthelper" depends="gtk+" init-function="sorthelper_init">
+    <glade-widget-classes>
+        <!-- <glade&#45;widget&#45;class name="SortHelperOpenFolderPopover" generic&#45;name="openfolderpopover" title="Open Folder Popover"/> -->
+    </glade-widget-classes>
+
+    <glade-widget-group name="SortHelper" title="SortHelper Widgets">
+        <!-- <glade&#45;widget&#45;class&#45;ref name="SortHelperOpenFolderPopover"/> -->
+    </glade-widget-group>
+</glade-catalog>

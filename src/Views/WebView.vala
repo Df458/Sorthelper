@@ -2,6 +2,7 @@ using GLib;
 using Gee;
 namespace SortHelper
 {
+    [GtkTemplate (ui = "/org/df458/sorthelper/WebView.ui")]
     public class WebView : View, Gtk.Box
     {
         public int item_id = 0;
@@ -10,9 +11,6 @@ namespace SortHelper
 
         public WebView()
         {
-            this.orientation = Gtk.Orientation.VERTICAL;
-            this.set_homogeneous(false);
-
             web_view = new WebKit.WebView();
             WebKit.Settings view_settings = new WebKit.Settings();
             view_settings.enable_javascript = true;

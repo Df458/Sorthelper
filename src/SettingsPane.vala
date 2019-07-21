@@ -2,7 +2,7 @@ using Gtk;
 
 namespace SortHelper {
 
-public class SettingsPane : SettingsGrid
+public class SettingsPane : DFLib.SettingsList
 {
     private CheckButton load_last_check;
     private CheckButton save_folder_check;
@@ -27,13 +27,13 @@ public class SettingsPane : SettingsGrid
         reset_button.get_style_context().add_class(STYLE_CLASS_DESTRUCTIVE_ACTION);
         save_folder_check.sensitive = false;
 
-        this.add(null, load_last_check, 0);
-        this.add(null, save_folder_check, 0);
+        this.add(null, load_last_check);
+        this.add(null, save_folder_check);
         response_buttons.add(save_button);
         response_buttons.add(cancel_button);
         response_buttons.add(reset_button);
         response_buttons.set_child_secondary(reset_button, true);
-        this.attach(response_buttons, 0, 1, 2, 1);
+        /* this.attach(response_buttons, 0, 1, 2, 1); */
 
         connect_signals();
     }

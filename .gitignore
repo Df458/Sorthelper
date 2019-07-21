@@ -1,6 +1,10 @@
 *.un~
 build
 sorthelper
+subprojects/dflib
+
+tags
 
 *.glade~
 *.glade#
+*.ui~

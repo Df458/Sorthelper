@@ -1,0 +1,14 @@
+<gresources>
+    <gresource prefix="/org/df458/sorthelper">
+        <file preprocess="xml-stripblanks">MainWindow.ui</file>
+        <file preprocess="xml-stripblanks">DefaultView.ui</file>
+        <file preprocess="xml-stripblanks">EmptyView.ui</file>
+        <file preprocess="xml-stripblanks">ImageFullView.ui</file>
+        <file preprocess="xml-stripblanks">AudioView.ui</file>
+        <file preprocess="xml-stripblanks">VideoView.ui</file>
+        <file preprocess="xml-stripblanks">WebView.ui</file>
+        <file preprocess="xml-stripblanks">ArchiveView.ui</file>
+        <file preprocess="xml-stripblanks">ComicView.ui</file>
+        <file preprocess="xml-stripblanks">WelcomeView.ui</file>
+    </gresource>
+</gresources>

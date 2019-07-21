@@ -1,17 +1,14 @@
-using GLib;
-using Gee;
 namespace SortHelper
 {
-	public class DefaultView : View, Granite.Widgets.Welcome
+    [GtkTemplate (ui = "/org/df458/sorthelper/DefaultView.ui")]
+	public class DefaultView : View, Gtk.Box
     {
-        public DefaultView()
-        {
-            base("No viewer exists for:", "file");
-        }
+        [GtkChild]
+        public Gtk.Label file_label;
 
         public bool load(File infile)
         {
-            subtitle = infile.get_basename();
+            file_label.label = infile.get_basename();
             return true;
         }
 

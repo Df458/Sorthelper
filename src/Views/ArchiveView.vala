@@ -2,10 +2,12 @@ using GLib;
 using Gee;
 namespace SortHelper
 {
+    [GtkTemplate (ui = "/org/df458/sorthelper/ArchiveView.ui")]
 	public class ArchiveView : View, Gtk.ScrolledWindow
     {
         Archive.Read archive;
         FileStream fs;
+        [GtkChild]
         Gtk.Label label;
 
         public ArchiveView()
@@ -13,8 +15,6 @@ namespace SortHelper
             archive = new Archive.Read();
             archive.support_filter_all();
             archive.support_format_all();
-            label = new Gtk.Label(null);
-            this.add_with_viewport(label);
         }
 
         public bool load(File infile)
@@ -30,9 +30,8 @@ namespace SortHelper
         {
             unowned Archive.Entry e;
             label.label = "";
-            while(archive.next_header(out e) == Archive.Result.OK) {
+            while(archive.next_header(out e) == Archive.Result.OK)
                 label.label += e.pathname() + "\n";
-            }
         }
 
         public void resize() {}

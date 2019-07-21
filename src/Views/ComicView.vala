@@ -2,25 +2,15 @@ using GLib;
 using Gee;
 namespace SortHelper
 {
-	public class ComicView : View, Gtk.Box
+    [GtkTemplate (ui = "/org/df458/sorthelper/ComicView.ui")]
+	public class ComicView : View, Gtk.ScrolledWindow
     {
         Archive.Read archive;
         Archive.WriteDisk output;
         FileStream fs;
-        private Gtk.ScrolledWindow scroll_view;
+        [GtkChild]
         private Gtk.Image dispimage;
         private Gtk.Image datimage;
-
-        public ComicView()
-        {
-            this.orientation = Gtk.Orientation.VERTICAL;
-            this.set_homogeneous(false);
-            scroll_view = new Gtk.ScrolledWindow(null, null);
-            dispimage = new Gtk.Image();
-            scroll_view.add_with_viewport(dispimage);
-
-            this.pack_start(scroll_view, true, true, 0);
-        }
 
         public void resize()
         {
@@ -47,16 +37,15 @@ namespace SortHelper
             while(archive.next_header(out e) == Archive.Result.OK || !found_image) {
                 if(e.pathname().has_suffix("png") || e.pathname().has_suffix("jpg") || e.pathname().has_suffix("jpeg")) {
                     found_image = true;
-                    void* data;
+                    uint8[] data;
                     size_t size;
-                    Posix.off_t off;
                     e.set_pathname("/tmp/arc_img_tmp");
                     output.write_header(e);
                     while(true) {
-                        Archive.Result r = archive.read_data_block(out data, out size, out off);
+                        Archive.Result r = archive.read_data_block(out data, out size);
                         if(r == Archive.Result.EOF)
                             break;
-                        output.write_data_block(data, size, off);
+                        output.write_data_block(data, size);
                     }
                     output.finish_entry();
                 }
@@ -92,8 +81,8 @@ namespace SortHelper
             Gtk.Image image = new Gtk.Image();
             int oldwidth = imagedat.get_pixbuf().get_width();
             int oldheight = imagedat.get_pixbuf().get_height();
-            int width = this.scroll_view.get_allocated_width();
-            int height = this.scroll_view.get_allocated_height();
+            int width = this.get_allocated_width();
+            int height = this.get_allocated_height();
             if(oldwidth < width && oldheight < height){
                 width = oldwidth;
                 height = oldheight;

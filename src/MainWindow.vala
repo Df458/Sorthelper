@@ -2,6 +2,7 @@ using Gee;
 using Gtk;
 namespace SortHelper
 {
+[GtkTemplate (ui = "/org/df458/sorthelper/MainWindow.ui")]
 public class MainWindow : ApplicationWindow
 {
     private     Rand random;
@@ -9,27 +10,33 @@ public class MainWindow : ApplicationWindow
     public int  selected = 0;
     public File current_file;
 
+    [GtkChild]
     private HeaderBar toolbar;
 
+    [GtkChild]
     private Paned main_paned;
+    [GtkChild]
     private Box   main_box;
-    private Box   list_box;
+    [GtkChild]
     private Box   view_box;
-    private Box   control_box;
-    private Box   control_link_box;
+    [GtkChild]
     private Stack main_stack;
     private Stack secondary_stack;
+    [GtkChild]
     private Stack mode_stack;
 
+    [GtkChild]
     private MenuButton   menubutton;
+    [GtkChild]
     private Button       undobutton;
+    [GtkChild]
     private Button       redobutton;
-    private Button       skipbutton;
+    [GtkChild]
     private Button       nextbutton;
+    [GtkChild]
     private Button       backbutton;
+    [GtkChild]
     private Button       deletebutton;
-    private Button       openbutton;
-    private ToggleButton batchbutton;
 
     private Motion failure_list;
     private bool failed_last = false;
@@ -44,112 +51,78 @@ public class MainWindow : ApplicationWindow
     private ComicView     comic_view;
     private WelcomeView   welcome_view;
     private View          chosen_view;
-    private Overlay       view_overlay;
 
     private SettingsPane  settings;
 
+    [GtkChild]
     private InfoBar errorbar;
 
+    [GtkChild]
     private SearchEntry     search;
+    [GtkChild]
     private TreeView        places_view;
+    [GtkChild]
     private TreeStore       places_data;
+    [GtkChild]
     private TreeModelFilter places_filter;
-    private ScrolledWindow  places_wrapper;
+    [GtkChild]
+    private CellRendererText name_renderer;
+    [GtkChild]
+    private TreeViewColumn col_name;
 
-    private OpenFolderPopover open_pop;
-    private OpenFolderPopover target_pop;
     private AddFolderPopover  add_pop;
 
     private string filter_key;
     private bool   filtering = false;
     private bool   filterreset = false;
 
-    private GLib.Menu main_menu;
+    /* private GLib.Menu main_menu; */
     private Gtk.Menu places_menu;
+
+    construct {
+        back_action = new SimpleAction ("prev", null);
+        back_action.activate.connect(go_prev);
+        add_action(back_action);
+
+        next_action = new SimpleAction ("next", null);
+        next_action.activate.connect(go_next);
+        add_action(next_action);
+
+        skip_action = new SimpleAction ("skip", null);
+        skip_action.activate.connect(skip);
+        add_action(skip_action);
+
+        var open_folder_action = new SimpleAction ("open_folder", null);
+        open_folder_action.activate.connect(open_folder);
+        add_action(open_folder_action);
+
+        var new_action = new SimpleAction("new", null);
+        new_action.activate.connect(sort_new);
+        add_action(new_action);
+    }
  
     public MainWindow()
     {
-        this.window_position = Gtk.WindowPosition.CENTER;
-        this.set_default_size (1024, 768);
-
         random = new GLib.Rand();
         accel = new Gtk.AccelGroup();
         this.add_accel_group(accel);
         set_events(Gdk.EventMask.ALL_EVENTS_MASK);
 
-        init_structure();
+        secondary_stack  = new Stack();
+        settings         = new SettingsPane();
+        secondary_stack.visible = false;
+        mode_stack.add_named(settings, "settings");
+        mode_stack.set_visible_child(main_paned);
+
         init_content();
         connect_signals();
         add_actions();
-        init_menus();
 
         this.show_all();
     }
 
-    private void init_structure()
-    {
-        toolbar          = new HeaderBar();
-        main_paned       = new Paned(Orientation.HORIZONTAL);
-        main_box         = new Box(Orientation.VERTICAL, 0);
-        view_box         = new Box(Orientation.HORIZONTAL, 18);
-        list_box         = new Box(Orientation.VERTICAL, 6);
-        control_box      = new Box(Orientation.HORIZONTAL, 6);
-        control_link_box = new Box(Orientation.HORIZONTAL, 0);
-        mode_stack       = new Stack();
-        main_stack       = new Stack();
-        view_overlay     = new Overlay();
-        secondary_stack  = new Stack();
-        errorbar         = new Gtk.InfoBar.with_buttons("Replace", 1, "Delete", 2);
-        settings         = new SettingsPane();
-
-        toolbar.set_title("Sorthelper");
-        toolbar.set_show_close_button(true);
-        toolbar.set_decoration_layout("menu:close");
-        control_box.halign = Align.END;
-        control_box.valign = Align.END;
-        control_box.margin = 18;
-        control_link_box.get_style_context().add_class(STYLE_CLASS_LINKED);
-        secondary_stack.visible = false;
-        main_paned.set_position(200);
-
-        // TODO: Consider making errorbar a class as well
-        Gtk.Container content = errorbar.get_content_area();
-
-        errorbar.set_show_close_button(true);
-        errorbar.set_response_sensitive(1, true);
-        errorbar.set_response_sensitive(2, true);
-        errorbar.set_message_type(Gtk.MessageType.ERROR);
-        content.add(new Gtk.Label("A file with the same name already exists!"));
-
-        this.set_titlebar(toolbar);
-        view_box.pack_start(main_stack, true, true);
-        // TODO: Pack/Unpack this as needed
-        //view_box.pack_start(secondary_stack, true, true);
-        view_overlay.add(view_box);
-        main_paned.pack1(list_box, false, true);
-        main_paned.pack2(view_overlay, false, true);
-        mode_stack.add_named(main_paned, "sort");
-        mode_stack.add_named(settings, "settings");
-        mode_stack.set_visible_child(main_paned);
-        main_box.pack_start(mode_stack, true, true);
-        this.add(main_box);
-    }
-
     private void init_content()
     {
-        menubutton   = new MenuButton();
-        undobutton   = new Button.from_icon_name("edit-undo-symbolic");
-        redobutton   = new Button.from_icon_name("edit-redo-symbolic");
-        openbutton   = new Button.from_icon_name("folder-open-symbolic");
-        nextbutton   = new Button.from_icon_name("go-next-symbolic");
-        backbutton   = new Button.from_icon_name("go-previous-symbolic");
-        skipbutton   = new Button.from_icon_name("view-refresh-symbolic");
-        deletebutton = new Button.from_icon_name("list-remove-symbolic");
-        batchbutton  = new ToggleButton();
-        open_pop   = new OpenFolderPopover(openbutton);
-        search     = new SearchEntry();
-        target_pop = new OpenFolderPopover(menubutton);
-
         fullview     = new ImageFullView();
         default_view = new DefaultView();
         empty_view   = new EmptyView();
@@ -162,59 +135,16 @@ public class MainWindow : ApplicationWindow
 
         chosen_view = empty_view;
 
-
         init_places_view();
 
-        search.margin_top = 6;
-        search.margin_left = 6;
-        search.margin_right = 6;
-        search.set_placeholder_text("Filter\u2026");
-        search.set_tooltip_text("Filter\u2026");
         places_view.set_search_entry(search);
 
-        openbutton.set_tooltip_text("Add Directories\u2026");
-        menubutton.direction = ArrowType.DOWN;
-        menubutton.set_image(new Image.from_icon_name("open-menu-symbolic", IconSize.SMALL_TOOLBAR));
-        undobutton.set_tooltip_text("Main Menu");
         undobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        undobutton.set_sensitive(false);
-        undobutton.set_tooltip_text("Undo");
         redobutton.add_accelerator("clicked", accel, 'z', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        redobutton.set_sensitive(false);
-        redobutton.set_tooltip_text("Redo");
-        nextbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
-        backbutton.get_style_context().add_class(Gtk.STYLE_CLASS_OSD);
-        nextbutton.halign = Gtk.Align.END;
-        nextbutton.valign = Gtk.Align.CENTER;
-        nextbutton.margin = 18;
         nextbutton.add_accelerator("clicked", accel, Gdk.Key.Right, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        backbutton.halign = Gtk.Align.START;
-        backbutton.valign = Gtk.Align.CENTER;
-        backbutton.margin = 18;
         backbutton.add_accelerator("clicked", accel, Gdk.Key.Left, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        nextbutton.set_tooltip_text("Next File");
-        backbutton.set_tooltip_text("Previous File");
-        skipbutton.add_accelerator("clicked", accel, 's', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        skipbutton.set_tooltip_text("Skip This Group");
         deletebutton.add_accelerator("clicked", accel, 'd', Gdk.ModifierType.SHIFT_MASK | Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        deletebutton.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION);
-        skipbutton.set_tooltip_text("Delete");
-        batchbutton.set_image(new Gtk.Image.from_icon_name("edit-select-all-symbolic", IconSize.BUTTON));
-        batchbutton.add_accelerator("clicked", accel, 'b', Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE);
-        batchbutton.set_active (true);
-        batchbutton.set_tooltip_text("Batch Mode");
 
-        toolbar.pack_start(openbutton);
-        toolbar.pack_start(undobutton);
-        toolbar.pack_start(redobutton);
-        toolbar.pack_end(menubutton);
-        control_link_box.add(skipbutton);
-        control_link_box.add(deletebutton);
-        control_box.add(batchbutton);
-        control_box.add(control_link_box);
-        view_overlay.add_overlay(nextbutton);
-        view_overlay.add_overlay(backbutton);
-        view_overlay.add_overlay(control_box);
         main_stack.add_named(default_view, "default");
         main_stack.add_named(fullview,     "image");
         main_stack.add_named(empty_view,   "empty");
@@ -224,55 +154,15 @@ public class MainWindow : ApplicationWindow
         main_stack.add_named(archive_view, "archive");
         main_stack.add_named(comic_view,   "comic");
         main_stack.add_named(welcome_view, "welcome");
-        list_box.pack_start(search, false, false);
-        places_wrapper.add(places_view);
-        list_box.pack_start(places_wrapper, true, true);
     }
 
     private void init_places_view()
     {
-        places_wrapper = new Gtk.ScrolledWindow(null, null);
-        places_data    = new Gtk.TreeStore(4, typeof(string), typeof(string), typeof(bool), typeof(bool));
-        places_filter  = new Gtk.TreeModelFilter(places_data, null);
-        places_view    = new Gtk.TreeView.with_model(places_filter);
         add_pop        = new AddFolderPopover(places_view);
-        // TODO: Move this
-        CellRendererText name_renderer = new Gtk.CellRendererText();
-        Gtk.TreeViewColumn col_name = new Gtk.TreeViewColumn.with_attributes("Name", name_renderer, "text", 0, null);
 
         places_data.set_sort_column_id(0, Gtk.SortType.ASCENDING);
         places_filter.set_visible_column(2);
-        places_view.enable_search = true;
-        places_view.search_column = 0;
-        places_view.set_headers_visible(false);
-        name_renderer.editing_canceled.connect(() =>
-        {
-            name_renderer.editable = false;
-        });
-        name_renderer.edited.connect((path, text) =>
-        {
-            Gtk.TreeIter iter;
-            string data_path = "";
-            string old_name = "";
-            Gtk.TreePath child_path = places_filter.convert_path_to_child_path(new Gtk.TreePath.from_string(path));
-            places_data.get_iter(out iter, child_path);
-            if(!places_data.iter_is_valid(iter)) {
-                stderr.printf("Error: Couldn't find iterator at %s->%s\n", path, child_path.to_string());
-                return;
-            }
-            places_data.get(iter, 0, out old_name, 1, out data_path);
-            if(old_name == text)
-                return;
-            File f = File.new_for_uri(data_path);
-            try {
-                f = f.set_display_name(text);
-                places_data.set(iter, 0, text, 1, f.get_uri());
-            } catch(Error e) {
-                stderr.printf("Error renaming directory: %s\n", e.message);
-            }
-            name_renderer.editable = false;
-        });
-        places_view.insert_column(col_name, -1);
+
         SimpleActionGroup branch_group = new SimpleActionGroup();
         SimpleAction act_hide = new SimpleAction("hide", null);
         act_hide.set_enabled(true);
@@ -328,98 +218,17 @@ public class MainWindow : ApplicationWindow
         places_view.set_events(Gdk.EventMask.BUTTON_PRESS_MASK);
     }
 
+    private void open_folder() {
+        var dlg = new FileChooserDialog("Add a sort directory", this, FileChooserAction.SELECT_FOLDER, "Add", ResponseType.ACCEPT, "Cancel", ResponseType.CANCEL);
+        int response = dlg.run();
+        dlg.close();
+        if (response == ResponseType.ACCEPT) {
+            addDir(dlg.get_file (), null);
+        }
+    }
+
     private void connect_signals()
     {
-        this.destroy.connect(on_exit);
-
-        main_stack.size_allocate.connect(resizeView);
-        errorbar.response.connect(respond);
-
-        undobutton.clicked.connect(() =>
-        {
-            App.undo_list.undo();
-            if(App.undo_list.previous_count == 0)
-                undobutton.set_sensitive(false);
-            redobutton.set_sensitive(true);
-        });
-        redobutton.clicked.connect(() =>
-        {
-            App.undo_list.redo();
-            if(App.undo_list.next_count == 0)
-                redobutton.set_sensitive(false);
-            undobutton.set_sensitive(true);
-        });
-        openbutton.clicked.connect(() => {open_pop.show_all();});
-        open_pop.file_chosen.connect((file) => { addDir(file, null); });
-        nextbutton.clicked.connect(() => { go_next(); });
-        backbutton.clicked.connect(() => { go_prev(); });
-        skipbutton.clicked.connect(loadFile);
-        deletebutton.clicked.connect(removeFile);
-        batchbutton.toggled.connect(swapBatch);
-
-        search.search_changed.connect(() =>
-        {
-            traversal_filter.begin(search.text);
-        });
-        search.activate.connect(() =>
-        {
-            Gtk.TreePath path = null;
-            Gtk.TreeViewColumn column;
-            places_view.get_cursor(out path, out column);
-            if(path != null)
-                places_view.row_activated(path, column);
-        });
-        places_view.row_activated.connect((path, column) =>
-        {
-            Gtk.TreeIter iter;
-            Gtk.TreePath child_path = places_filter.convert_path_to_child_path(path);
-            places_data.get_iter(out iter, child_path);
-            if(!places_data.iter_is_valid(iter)) {
-                stderr.printf("Error: Couldn't find iterator at %s->%s\n", path.to_string(), child_path.to_string());
-                return;
-            }
-            string move_path = "";
-            places_data.get(iter, 1, out move_path);
-
-            if(App.batch_mode) {
-                stderr.printf("Moving several files...\n");
-                Motion err = App.move_files(move_path, App.to_display);
-                if(err.new_position.size != 0)
-                    move_failed(err);
-                else
-                    stderr.printf("Move succeeded.\n");
-            } else {
-                stderr.printf("Moving single file...");
-                stderr.printf("(%d/%d)\n", selected, App.to_display.size);
-                bool success = App.move_file(move_path, App.to_display[selected]);
-                if(!success)
-                    move_failed_single(move_path);
-                else
-                    stderr.printf("Move succeeded.\n");
-                if(selected >= App.to_display.size)
-                    selected--;
-            }
-            if(App.to_display.size == 0)
-                loadFile();
-            else
-                resetView();
-
-            search.grab_focus();
-        });
-        places_view.button_press_event.connect((event) =>
-        {
-            TreePath? path;
-            places_view.get_cursor(out path, null);
-            if(event.button == 3 && path != null) {
-                places_view.popup_menu();
-            }
-            return false;
-        });
-        places_view.popup_menu.connect(() =>
-        {
-            places_menu.popup(null, null, null, 0, Gtk.get_current_event_time());
-            return false;
-        });
         places_view.set_search_equal_func((model, column, key, iter) =>
         {
             string name = "";
@@ -428,23 +237,22 @@ public class MainWindow : ApplicationWindow
         });
 
         add_pop.file_created.connect(build_directory);
+    }
 
-        target_pop.file_chosen.connect((file) => {
-            App.item_list.load_folder(file);
+    private void sort_new () {
+        var dlg = new FileChooserDialog("Add a sort directory", this, FileChooserAction.SELECT_FOLDER, "Add", ResponseType.ACCEPT, "Cancel", ResponseType.CANCEL);
+        int response = dlg.run();
+        dlg.close();
+        if (response == ResponseType.ACCEPT) {
+            App.item_list.load_folder(dlg.get_file ());
             undobutton.set_sensitive(false);
             redobutton.set_sensitive(false);
             loadFile();
-        });
+        }
     }
 
     private void add_actions()
     {
-        GLib.SimpleAction new_action = new GLib.SimpleAction("new", null);
-        new_action.activate.connect(() =>
-        {
-            target_pop.show_all();
-        });
-
         GLib.SimpleAction settings_action = new GLib.SimpleAction("settings", null);
         settings_action.activate.connect(() =>
         {
@@ -460,22 +268,11 @@ public class MainWindow : ApplicationWindow
             settings_action.set_enabled(true);
         });
 
-        this.add_action(new_action);
         this.add_action(settings_action);
     }
-
-    private void init_menus()
-    {
-        main_menu = new GLib.Menu();
-        GLib.MenuItem new_item = new GLib.MenuItem("Sort New", "win.new");
-        main_menu.append_item(new_item);
-        GLib.MenuItem settings_item = new GLib.MenuItem("Settings", "win.settings");
-        main_menu.append_item(settings_item);
-
-        menubutton.set_menu_model(main_menu);
-    }
     
-    void respond (int response_id)
+    [GtkCallback]
+    private void respond (int response_id)
     {
         if(response_id == 1)
             replaceFile();
@@ -492,7 +289,8 @@ public class MainWindow : ApplicationWindow
         return (View)main_stack.get_visible_child();
     }
     
-    public void resizeView()
+    [GtkCallback]
+    private void resizeView()
     {
         current_view().resize();
     }
@@ -503,10 +301,8 @@ public class MainWindow : ApplicationWindow
         toolbar.set_subtitle(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
         current_view().load(App.to_display[selected]);
         current_view().display();
-        backbutton.sensitive = true;
-        if(selected >= App.to_display.size - 1) {
-            nextbutton.sensitive = false;
-        }
+        back_action.set_enabled (true);
+        next_action.set_enabled (selected < App.to_display.size - 1);
         this.show_all();
     }
 
@@ -516,10 +312,9 @@ public class MainWindow : ApplicationWindow
         toolbar.set_subtitle(App.to_display[selected].get_basename() + (App.to_display.size > 1 ? " (" + (selected + 1).to_string() + "/" + App.to_display.size.to_string() + ")" : ""));
         current_view().load(App.to_display[selected]);
         current_view().display();
-        nextbutton.sensitive = true;
-        nextbutton.sensitive = true;
+        next_action.set_enabled (true);
         if(selected <= 0) {
-            backbutton.sensitive = false;
+            back_action.set_enabled (false);
         }
         this.show_all();
     }
@@ -527,13 +322,16 @@ public class MainWindow : ApplicationWindow
     public void loadFile()
     {
         selected = 0;
-        nextbutton.sensitive = false;
-        backbutton.sensitive = false;
+        back_action.set_enabled (false);
+        next_action.set_enabled (false);
         search.grab_focus();
         if(errorbar.get_parent() == main_box) {
             main_box.remove(errorbar);
             main_box.show_all();
         }
+
+        skip_action.set_enabled (!App.item_list.is_empty ());
+
         if(App.item_list.is_empty()) {
             toolbar.set_subtitle("Completion: " + (App.item_list.orig_size - App.item_list.size).to_string() + "/" + App.item_list.orig_size.to_string());
             if(App.undo_list.previous_count > 0)
@@ -548,11 +346,7 @@ public class MainWindow : ApplicationWindow
         });
     }
     
-    public void swapBatch()
-    {
-        App.batch_mode = batchbutton.get_active();
-    }
-    
+    [GtkCallback]
     public void replaceFile()
     {
         search.grab_focus();
@@ -560,7 +354,7 @@ public class MainWindow : ApplicationWindow
             main_box.remove(errorbar);
             main_box.show_all();
         }
-        if(App.batch_mode) {
+        if(App.instance.batch_mode) {
             stdout.printf("Replacing %d images...\n", App.to_display.size);
             while(App.to_display.size > 0) {
                 try {
@@ -595,6 +389,7 @@ public class MainWindow : ApplicationWindow
         }
     }
 
+    [GtkCallback]
     public void removeFile()
     {
         search.grab_focus();
@@ -602,7 +397,7 @@ public class MainWindow : ApplicationWindow
             main_box.remove(errorbar);
             main_box.show_all();
         }
-        if(App.batch_mode) {
+        if(App.instance.batch_mode) {
             stdout.printf("Removing %d images...\n", App.to_display.size);
             while(App.to_display.size > 0) {
                 try {
@@ -645,7 +440,7 @@ public class MainWindow : ApplicationWindow
             undobutton.set_sensitive(true);
         redobutton.set_sensitive(App.undo_list.next_count > 0);
         if(App.to_display.size > 1) {
-            nextbutton.sensitive = true;
+            next_action.set_enabled (true);
         }
         chosen_view.unload();
         if(App.to_display.is_empty) {
@@ -712,10 +507,10 @@ public class MainWindow : ApplicationWindow
         current_view().load(App.to_display[selected]);
         current_view().display();
         if(selected >= App.to_display.size - 1) {
-            nextbutton.sensitive = false;
+            next_action.set_enabled (false);
         }
         if(selected <= 0) {
-            backbutton.sensitive = false;
+            next_action.set_enabled (false);
         }
         this.show_all();
     }
@@ -761,10 +556,11 @@ public class MainWindow : ApplicationWindow
                 failure_list.old_folder.add("");
             failure_list.new_position.add(f);
         }
-        // TODO: Display errors
+        view_box.pack_start(secondary_stack, true, true);
         show_all();
     }
     
+    [GtkCallback]
     private void on_exit()
     {
         chosen_view.unload();
@@ -834,5 +630,139 @@ public class MainWindow : ApplicationWindow
         } while(places_data.iter_next(ref iter));
         return back;
     }
+
+    private void skip () {
+        foreach (File file in App.to_display) {
+            App.item_list.remove (file);
+        }
+
+        loadFile ();
+    }
+
+    [GtkCallback]
+    private void folder_cancel_edit()
+    {
+        name_renderer.editable = false;
+    }
+
+    [GtkCallback]
+    private void folder_finish_edit(string path, string text)
+    {
+        Gtk.TreeIter iter;
+        string data_path = "";
+        string old_name = "";
+        Gtk.TreePath child_path = places_filter.convert_path_to_child_path(new Gtk.TreePath.from_string(path));
+        places_data.get_iter(out iter, child_path);
+        if(!places_data.iter_is_valid(iter)) {
+            stderr.printf("Error: Couldn't find iterator at %s->%s\n", path, child_path.to_string());
+            return;
+        }
+        places_data.get(iter, 0, out old_name, 1, out data_path);
+        if(old_name == text)
+            return;
+        File f = File.new_for_uri(data_path);
+        try {
+            f = f.set_display_name(text);
+            places_data.set(iter, 0, text, 1, f.get_uri());
+        } catch(Error e) {
+            stderr.printf("Error renaming directory: %s\n", e.message);
+        }
+        name_renderer.editable = false;
+    }
+
+    [GtkCallback]
+    private void on_undo()
+    {
+        App.undo_list.undo();
+        if(App.undo_list.previous_count == 0)
+            undobutton.set_sensitive(false);
+        redobutton.set_sensitive(true);
+    }
+
+    [GtkCallback]
+    private void on_redo()
+    {
+        App.undo_list.redo();
+        if(App.undo_list.next_count == 0)
+            redobutton.set_sensitive(false);
+        undobutton.set_sensitive(true);
+    }
+
+    [GtkCallback]
+    private void update_search()
+    {
+        traversal_filter.begin(search.text);
+    }
+
+    [GtkCallback]
+    private void search_activate()
+    {
+        Gtk.TreePath path = null;
+        Gtk.TreeViewColumn column;
+        places_view.get_cursor(out path, out column);
+        if(path != null)
+            places_view.row_activated(path, column);
+    }
+
+    [GtkCallback]
+    private void choose_folder(TreeView view, TreePath path, TreeViewColumn column)
+    {
+        Gtk.TreeIter iter;
+        Gtk.TreePath child_path = places_filter.convert_path_to_child_path(path);
+        places_data.get_iter(out iter, child_path);
+        if(!places_data.iter_is_valid(iter)) {
+            stderr.printf("Error: Couldn't find iterator at %s->%s\n", path.to_string(), child_path.to_string());
+            return;
+        }
+        string move_path = "";
+        places_data.get(iter, 1, out move_path);
+
+        if(App.instance.batch_mode) {
+            stderr.printf("Moving several files...\n");
+            Motion err = App.move_files(move_path, App.to_display);
+            if(err.new_position.size != 0)
+                move_failed(err);
+            else
+                stderr.printf("Move succeeded.\n");
+        } else {
+            stderr.printf("Moving single file...");
+            stderr.printf("(%d/%d)\n", selected, App.to_display.size);
+            bool success = App.move_file(move_path, App.to_display[selected]);
+            if(!success)
+                move_failed_single(move_path);
+            else
+                stderr.printf("Move succeeded.\n");
+            if(selected >= App.to_display.size)
+                selected--;
+        }
+        if(App.to_display.size == 0)
+            loadFile();
+        else
+            resetView();
+
+        search.grab_focus();
+    }
+
+    [GtkCallback]
+    private bool on_folder_click(Gdk.EventButton event)
+    {
+        TreePath? path;
+        places_view.get_cursor(out path, null);
+        if(event.button == 3 && path != null) {
+            places_view.popup_menu();
+        }
+        return false;
+    }
+
+    [GtkCallback]
+    private bool on_folder_popup()
+    {
+        places_menu.popup(null, null, null, 0, Gtk.get_current_event_time());
+        return false;
+    }
+
+    private SimpleAction back_action;
+    private SimpleAction next_action;
+    private SimpleAction skip_action;
 }
 }
